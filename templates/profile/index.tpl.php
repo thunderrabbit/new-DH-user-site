@@ -49,6 +49,5 @@
 
 <div class="PagePanel">
     <p>Logged in as: <strong><?= htmlspecialchars($username) ?></strong></p>
-    <a href="/admin/">Back to Dashboard</a> |
     <a href="/logout/">Logout</a>
 </div>

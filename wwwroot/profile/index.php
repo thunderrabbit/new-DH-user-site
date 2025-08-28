@@ -72,7 +72,8 @@ $page->set("success_message", $success_message);
 $inner = $page->grabTheGoods();
 
 $layout = new \Template(config: $config);
-$layout->setTemplate("layout/admin_base.tpl.php");
+$layout->setTemplate("layout/base.tpl.php");
+$layout->set("username", $is_logged_in->getLoggedInUsername());
 $layout->set("page_title", "Change Password");
 $layout->set("page_content", $inner);
 $layout->echoToScreen();
