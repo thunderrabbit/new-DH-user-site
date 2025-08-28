@@ -5,7 +5,7 @@
 preg_match('#^(/home/[^/]+/[^/]+)#', __DIR__, $matches);
 include_once $matches[1] . '/prepend.php';
 
-if ($is_logged_in->isLoggedIn()) {
+if ($is_logged_in->isLoggedIn() && $is_logged_in->isAdmin()) {
     $page = new \Template(config: $config);
     $page->setTemplate("admin/migrate_tables.tpl.php");
     $pending = $dbExistaroo->getPendingMigrations();

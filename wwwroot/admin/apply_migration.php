@@ -6,7 +6,7 @@ include_once $matches[1] . '/prepend.php';
 
 header("Content-Type: application/json");
 
-if (!$is_logged_in->isLoggedIn()) {
+if (!$is_logged_in->isLoggedIn() || !$is_logged_in->isAdmin()) {
     http_response_code(403);
     echo json_encode(["error" => "Unauthorized"]);
     exit;

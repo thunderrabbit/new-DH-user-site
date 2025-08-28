@@ -69,6 +69,27 @@ class IsLoggedIn
     {
         return $this->loggedInUsername;
     }
+
+    public function getUserRole(): string
+    {
+        if ($this->who_is_logged_in <= 0) {
+            return '';
+        }
+
+        $stmt = $this->di_pdo->prepare("SELECT `role` FROM `users` WHERE `user_id` = ? LIMIT 1");
+        $stmt->execute([$this->who_is_logged_in]);
+        $result = $stmt->fetchAll();
+
+        if (count($result) > 0) {
+            return $result[0]['role'] ?? '';
+        }
+        return '';
+    }
+
+    public function isAdmin(): bool
+    {
+        return $this->getUserRole() === 'admin';
+    }
     private function setAutoLoginCookie(int $user_id):void
     {
         $cookie = \Utilities::randomString(32);
