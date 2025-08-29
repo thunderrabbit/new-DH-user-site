@@ -160,23 +160,22 @@ class DBExistaroo {
         $applied = $this->getAppliedVersions();
         $base_dir = $this->config->app_path . "/db_schemas";
 
-        foreach (["00", "01", "02", "03", "04"] as $prefix) {
-            // Get all schema directories that match the prefix
-            $schema_dirs = glob("$base_dir/{$prefix}_*", GLOB_ONLYDIR);
+        // Get all numbered schema directories (e.g., 00_bedrock, 01_gumdrop_cloud, 02_workers, etc.)
+        $schema_dirs = glob("$base_dir/[0-9][0-9]_*", GLOB_ONLYDIR);
+        sort($schema_dirs); // Ensure they're processed in numerical order
 
-            foreach ($schema_dirs as $schema_dir) {
-                $version = basename($schema_dir);   // directory name in $base_dir, e.g. "02_workers"
-                // print_rob($version, false);
-                $create_files = glob("$schema_dir/create_*.sql");
+        foreach ($schema_dirs as $schema_dir) {
+            $version = basename($schema_dir);   // directory name in $base_dir, e.g. "02_workers"
+            // print_rob($version, false);
+            $create_files = glob("$schema_dir/create_*.sql");
 
-                foreach ($create_files as $file) {
-                    $key = "$version/" . basename($file);
-                    if (!in_array($key, $applied)) {
-                        $pending[] = $key;
-                        // echo "Pending migration found: $key<br>";
-                    } else {
-                        // echo "Skipping already applied migration: $key<br>";
-                    }
+            foreach ($create_files as $file) {
+                $key = "$version/" . basename($file);
+                if (!in_array($key, $applied)) {
+                    $pending[] = $key;
+                    // echo "Pending migration found: $key<br>";
+                } else {
+                    // echo "Skipping already applied migration: $key<br>";
                 }
             }
         }
