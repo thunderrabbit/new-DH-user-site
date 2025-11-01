@@ -17,14 +17,19 @@ class CSRFProtectaroo {
     /**
      * Generate a new CSRF token and store it in the session
      *
+     * This method MUST store the token in the session. If the session is not
+     * available, an exception will be thrown by the Request object, preventing
+     * silent failures that would allow unvalidated requests.
+     *
      * @return string The generated token
+     * @throws \DomainException If $_SESSION is not set
      */
     public function generateToken(): string {
         $token = bin2hex(random_bytes(32));
 
-        if (isset($this->request->session)) {
-            $this->request->session['csrf_token'] = $token;
-        }
+        // Store token in session - throw exception if session unavailable
+        // This prevents silent failures that would bypass CSRF protection
+        $this->request->session['csrf_token'] = $token;
 
         return $token;
     }
