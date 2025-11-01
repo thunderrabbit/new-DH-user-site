@@ -28,7 +28,7 @@ class CSRFProtectaroo {
      * @return string The generated token in format "form_name:token_value"
      * @throws \DomainException If $_SESSION is not set
      */
-    public function generateToken(string $form_name): string {
+    private function generateToken(string $form_name): string {
         $token = bin2hex(random_bytes(32));
 
         // Store token in session array keyed by form_name - throw exception if session unavailable
@@ -90,15 +90,5 @@ class CSRFProtectaroo {
         }
 
         return $form_name . ':' . $existingToken;
-    }
-
-    /**
-     * Regenerate the CSRF token for a specific form (useful after sensitive operations)
-     *
-     * @param string $form_name Human-readable identifier for the form (e.g., "password_change_form")
-     * @return string The new token in format "form_name:token_value"
-     */
-    public function regenerateToken(string $form_name): string {
-        return $this->generateToken($form_name);
     }
 }
