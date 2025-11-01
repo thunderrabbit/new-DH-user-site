@@ -1,6 +1,6 @@
 <?php
 
-const SENTIMENTAL_VERSION = "We have migrations!";
+const SENTIMENTAL_VERSION = "Gimme CSRF";
 
 # write errors to screen
 ini_set('display_errors', 1);
