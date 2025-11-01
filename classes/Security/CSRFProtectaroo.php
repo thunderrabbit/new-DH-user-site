@@ -37,6 +37,9 @@ class CSRFProtectaroo {
     /**
      * Validate a submitted CSRF token against the stored token
      *
+     * After successful validation, regenerates the token to prevent replay attacks.
+     * This ensures each token can only be used once, even if intercepted.
+     *
      * @param string|null $submittedToken The token submitted with the form
      *        We handle null tokens gracefully.
      * @return bool True if token is valid, false otherwise
@@ -44,8 +47,16 @@ class CSRFProtectaroo {
     public function validateToken(?string $submittedToken): bool {
         $storedToken = $this->request->session['csrf_token'] ?? null;
         // If null (or not a string) is sent, return false
-        return $submittedToken !== null &&
+        $isValid = $submittedToken !== null &&
             hash_equals($storedToken, $submittedToken);
+
+        // Regenerate token after validation to prevent replay attacks
+        // Only regenerate if validation succeeded to avoid token changes on failed attempts
+        if ($isValid) {
+            $this->generateToken();
+        }
+
+        return $isValid;
     }
 
     /**
