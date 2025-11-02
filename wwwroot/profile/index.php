@@ -20,8 +20,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $new_password = $_POST['new_password'] ?? '';
     $confirm_password = $_POST['confirm_password'] ?? '';
 
-    // Validate input
+    // Validate CSRF token
     $errors = [];
+
+    if (!$csrfProtect->validateToken($_POST['csrf_token'] ?? null)) {
+        $errors[] = "Invalid security token. Please try again.";
+    }
+
+    // Validate input
     if (empty($current_password)) {
         $errors[] = "Current password is required.";
     }
@@ -62,12 +68,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
+// Generate CSRF token for the form
+$csrfToken = $csrfProtect->getToken("password_change_form");
+
 // Display the form
 $page = new \Template(config: $config);
 $page->setTemplate("profile/index.tpl.php");
 $page->set("username", $is_logged_in->getLoggedInUsername());
 $page->set("error_message", $error_message);
 $page->set("success_message", $success_message);
+$page->set("csrf_token", $csrfToken);
 
 $inner = $page->grabTheGoods();
 

@@ -14,6 +14,7 @@
     <?php endif; ?>
 
     <form action="/profile/" method="POST" class="mainForm">
+        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
         <fieldset>
             <div class="PageRow noborder">
                 <label for="current_password">Current Password:</label>
