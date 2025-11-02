@@ -12,7 +12,8 @@
         <div class="PageWrapper">
             <div class="PagePanel">
                 <div class="head"><h5 class="iUser">Register</h5></div>
-                <form action="" id="valid" class="mainForm" method="POST">
+                <form action="/login/register.php" id="valid" class="mainForm" method="POST">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
                     <fieldset>
                         <div class="PageRow noborder">
                             <label for="req1">Username:</label>
