@@ -13,6 +13,7 @@
             <div class="PagePanel">
                 <div class="head"><h5 class="iUser">Login</h5></div>
                 <form action="" id="valid" class="mainForm" method="POST">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
                     <fieldset>
                         <div class="PageRow noborder">
                             <label for="req1">Username:</label>

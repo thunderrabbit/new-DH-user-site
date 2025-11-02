@@ -11,8 +11,10 @@ include_once $matches[1] . '/classes/Mlaphp/Autoloader.php';
 $autoloader = new \Mlaphp\Autoloader();
 spl_autoload_register(array($autoloader, 'load'));
 
+// Start session for CSRF protection
+session_start();
+
 $mla_request = new \Mlaphp\Request();
-$config = new \Config();
 
 try {
     $config = new \Config();
@@ -31,14 +33,20 @@ $dbExistaroo = new \Database\DBExistaroo(
 $creating_admin_user = !$dbExistaroo->firstUserExistBool();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Validate CSRF token
+    $csrfProtect = new \Security\CSRFProtectaroo($mla_request);
+
     // handle form submission...
-    $mla_database = \Database\Base::getPDO($config);
     $username = trim($_POST['username'] ?? '');
     $password = $_POST['pass'] ?? '';
     $password_confirm = $_POST['pass_verify'] ?? '';
 
     // Validate input
     $errors = [];
+
+    if (!$csrfProtect->validateToken($_POST['csrf_token'] ?? null)) {
+        $errors[] = "Invalid security token. Please try again.";
+    }
     if (empty($username))
         $errors[] = "Username is required.";
     if (empty($password))
@@ -75,8 +83,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     exit;
 
 } else {
+    // Generate CSRF token for the register form
+    $csrfProtect = new \Security\CSRFProtectaroo($mla_request);
+    $csrfToken = $csrfProtect->getToken("register_admin_form");
+
     $page = new \Template(config: $config);
     $page->setTemplate("login/register.tpl.php");
+    $page->set("csrf_token", $csrfToken);
     $page->echoToScreen();
     exit;
 }
