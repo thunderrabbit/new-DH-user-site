@@ -1,5 +1,7 @@
 <h1>MarbleTrack3 Table Migration Dashboard</h1>
 <script>
+    const csrf_token = <?php echo json_encode($csrf_token, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
+
     function applyMigration(migration, buttonElement) {
         // AJAX request to apply the migration
         fetch('/admin/apply_migration.php', {
@@ -7,7 +9,7 @@
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ migration: migration })
+            body: JSON.stringify({ migration: migration, csrf_token: csrf_token })
         })
         .then(response => {
             if (response.ok) {
