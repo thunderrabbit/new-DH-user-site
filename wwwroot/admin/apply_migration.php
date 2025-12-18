@@ -14,13 +14,6 @@ if (!$is_logged_in->isLoggedIn() || !$is_logged_in->isAdmin()) {
 
 $input = json_decode(file_get_contents("php://input"), true);
 
-// Validate CSRF token
-if (!$csrfProtect->validateToken($input['csrf_token'] ?? null)) {
-    http_response_code(403);
-    echo json_encode(["error" => "Invalid security token"]);
-    exit;
-}
-
 if (empty($input['migration'])) {
     http_response_code(400);
     echo json_encode(["error" => "Missing migration identifier"]);

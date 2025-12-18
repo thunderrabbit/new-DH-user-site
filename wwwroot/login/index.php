@@ -11,12 +11,8 @@ if ($is_logged_in->isLoggedIn()) {
     exit;
 } else {
     if(!$is_logged_in->isLoggedIn()){
-        // Generate CSRF token for the login form
-        $csrfToken = $csrfProtect->getToken("login_form");
-
         $page = new \Template(config: $config);
         $page->setTemplate("login/index.tpl.php");
-        $page->set("csrf_token", $csrfToken);
         $page->echoToScreen();
         exit;
     }

@@ -36,9 +36,6 @@ class IsLoggedIn
                 $this->who_is_logged_in = $found_user_id;
             }
         } elseif(!empty($mla_request->post['username']) && !empty($mla_request->post['pass'])) {
-            // Note: We can't access $csrfProtect from prepend.php here due to architectural constraints
-            // For now, we'll accept the login attempt without CSRF check as IsLoggedIn is low-level auth
-            // CSRF protection is better enforced at form submission points
             $found_user_id = $this->checkPHPHashedPassword($mla_request->post['username'], $mla_request->post['pass']);
             if(empty($found_user_id))
             {

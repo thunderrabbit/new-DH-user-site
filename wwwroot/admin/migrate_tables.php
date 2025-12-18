@@ -6,15 +6,11 @@ preg_match('#^(/home/[^/]+/[^/]+)#', __DIR__, $matches);
 include_once $matches[1] . '/prepend.php';
 
 if ($is_logged_in->isLoggedIn() && $is_logged_in->isAdmin()) {
-    // Generate CSRF token for the form
-    $csrfToken = $csrfProtect->getToken("apply_migration_form");
-
     $page = new \Template(config: $config);
     $page->setTemplate("admin/migrate_tables.tpl.php");
     $pending = $dbExistaroo->getPendingMigrations();
     $page->set(name: "pending_migrations", value: $pending);
     $page->set(name: "has_pending_migrations", value: !empty($pending));
-    $page->set(name: "csrf_token", value: $csrfToken);
     $inner = $page->grabTheGoods();
 
     $layout = new \Template(config: $config);
