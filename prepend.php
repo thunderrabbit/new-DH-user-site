@@ -1,6 +1,6 @@
 <?php
 
-const SENTIMENTAL_VERSION = "Gimme CSRF";
+const SENTIMENTAL_VERSION = "Flexiblate the Database";
 
 # write errors to screen
 ini_set('display_errors', 1);
