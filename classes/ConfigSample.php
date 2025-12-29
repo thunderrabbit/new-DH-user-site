@@ -12,8 +12,8 @@ class Config {
     public $dbPass = "";
     public $dbName = "";
 
-    public $stripe_secret_key = '';  // sk_test_... from Stripe Dashboard
     public $stripe_publishable_key = '';  // pk_test_... from Stripe Dashboard
+    public $stripe_secret_key = '';  // sk_test_... from Stripe Dashboard
     public $stripe_webhook_secret = '';  // whsec_... from Stripe Webhooks
     public $stripe_webhook_endpoint = '/webhooks/stripe';
 }
