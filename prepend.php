@@ -1,6 +1,6 @@
 <?php
 
-const SENTIMENTAL_VERSION = "Flexiblate the Database";
+const SENTIMENTAL_VERSION = "Let's go Pro";
 
 # write errors to screen
 ini_set('display_errors', 1);
