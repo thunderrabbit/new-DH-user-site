@@ -13,22 +13,21 @@ This document outlines the atomic steps to implement a Stripe-based billing syst
 
 ---
 
-## Phase 1: Stripe Setup (Test Mode)
-
-### Step 1.1: Create Stripe Test Account & Get API Keys
-**Atomic Task:** Set up Stripe test account and obtain test API keys
-
-- [ ] Sign up for Stripe account (if not already done)
-- [ ] Navigate to Stripe Dashboard → Developers → API Keys
-- [ ] Copy **Publishable Key** (starts with `pk_test_`)
-- [ ] Copy **Secret Key** (starts with `sk_test_`)
-- [ ] Add keys to `classes/Config.php` (NOT in version control, similar to database credentials)
-
-**Deliverable:**
-
-public $stripe_secret_key = '';  // sk_test_... from Stripe Dashboard
-public $stripe_publishable_key = '';  // pk_test_... from Stripe Dashboard
-
+✅ ## Phase 1: Stripe Setup (Test Mode)
+✅
+✅ ### Step 1.1: Create Stripe Test Account & Get API Keys
+✅ **Atomic Task:** Set up Stripe test account and obtain test API keys
+✅
+✅ - [ ] Sign up for Stripe account (if not already done)
+✅ - [ ] Navigate to Stripe Dashboard → Developers → API Keys
+✅ - [ ] Copy **Publishable Key** (starts with `pk_test_`)
+✅ - [ ] Copy **Secret Key** (starts with `sk_test_`)
+✅ - [ ] Add keys to `classes/Config.php` (NOT in version control, similar to database credentials)
+✅
+✅ **Deliverable:**
+✅
+✅ public $stripe_secret_key = '';  // sk_test_... from Stripe Dashboard
+✅ public $stripe_publishable_key = '';  // pk_test_... from Stripe Dashboard
 
 ---
 
@@ -49,11 +48,11 @@ Create the following products in Stripe Dashboard (Test Mode):
    - Recurring billing: Yearly
    - Copy Price ID (starts with `price_`)
 
-3. **Lifetime (One-time payment)**
+✅ 3. **Lifetime (One-time payment)**         prod_TgxxCzv3Ct0Fdd
    - Product name: "Lifetime Pro"
    - Price: $299 (or your chosen amount)
    - One-time payment
-   - Copy Price ID (starts with `price_`)
+✅   - Copy Price ID (starts with `price_`)  price_1Sja20S2hMJe3qkFFihcNuBU
 
 **Deliverable:**
 - Product IDs and Price IDs documented
