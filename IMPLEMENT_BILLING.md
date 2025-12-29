@@ -24,7 +24,11 @@ This document outlines the atomic steps to implement a Stripe-based billing syst
 - [ ] Copy **Secret Key** (starts with `sk_test_`)
 - [ ] Add keys to `classes/Config.php` (NOT in version control, similar to database credentials)
 
-**Deliverable:** Test API keys stored in Config.php
+**Deliverable:**
+
+public $stripe_secret_key = '';  // sk_test_... from Stripe Dashboard
+public $stripe_publishable_key = '';  // pk_test_... from Stripe Dashboard
+
 
 ---
 
