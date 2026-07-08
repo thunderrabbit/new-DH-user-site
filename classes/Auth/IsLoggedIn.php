@@ -42,6 +42,9 @@ class IsLoggedIn
                 $this->killCookie();        // bad login, so kill any cookie
                 $this->who_is_logged_in = 0;
             } else {
+                // Fresh privilege level → fresh session id (fixation guard): a
+                // pre-set session id must not survive the authentication boundary.
+                session_regenerate_id(true);
                 $this->setAutoLoginCookie($found_user_id);
                 $this->who_is_logged_in = $found_user_id;
             }
@@ -96,7 +99,11 @@ class IsLoggedIn
 
         $record = [
             'user_id' => $user_id,
-            'cookie' => $cookie,
+            // Store only the SHA-256 of the token: a leaked DB dump/backup must
+            // not contain ready-to-use session tokens. The browser holds the
+            // plaintext; lookups hash the presented value (see
+            // getUserIdForCookieInDatabase).
+            'cookie' => hash('sha256', $cookie),
             'last_access' => date(format: "Y-m-d H:i:s"),
             'user_agent_md5' => md5($_SERVER['HTTP_USER_AGENT'] ?? ''),
             'ip_address' => \Auth\IPBin::ipToBinary(ip: $_SERVER['REMOTE_ADDR'])
@@ -165,7 +172,7 @@ class IsLoggedIn
     {
         $varbinary_ip = \Auth\IPBin::ipToBinary($ip_address);
         $stmt = $this->di_pdo->prepare("SELECT `user_id` FROM `cookies` WHERE `cookie` = ? AND `ip_address` = ? AND `user_agent_md5` = ? LIMIT 1");
-        $stmt->execute([$cookie, $varbinary_ip, md5($user_agent)]);
+        $stmt->execute([hash('sha256', $cookie), $varbinary_ip, md5($user_agent)]);
         $result = $stmt->fetchAll();
 
         if(count($result) > 0)
@@ -190,6 +197,15 @@ class IsLoggedIn
 
     public function logout(): void
     {
+        // Revoke the token server-side, not just in the browser — otherwise a
+        // captured cookie value keeps working for its full lifetime after the
+        // user has "logged out".
+        $presented = $_COOKIE[$this->di_config->cookie_name] ?? '';
+        if ($presented !== '') {
+            $stmt = $this->di_pdo->prepare("DELETE FROM `cookies` WHERE `cookie` = ?");
+            $stmt->execute([hash('sha256', $presented)]);
+        }
+
         $this->who_is_logged_in = 0;
         $this->killCookie();
         session_destroy();

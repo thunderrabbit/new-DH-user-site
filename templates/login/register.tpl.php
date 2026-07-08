@@ -31,6 +31,14 @@
                             <div class="PageInput"><input type="password" name="pass_verify" class="validate[required]" id="req3" /></div>
                             <div class="fix"></div>
                         </div>
+                        <?php if (!empty($creating_admin_user)): ?>
+                        <div class="PageRow noborder">
+                            <label for="req4">Setup token:</label>
+                            <div class="PageInput"><input type="text" name="setup_token" class="validate[required]" id="req4" autocomplete="off" /></div>
+                            <div class="fix"></div>
+                        </div>
+                        <p class="RegisterSetupHelp">First-run admin creation is protected. Read <code>bootstrap_token.txt</code> from the project root on the server and paste its value here.</p>
+                        <?php endif; ?>
                         <div class="PageRow noborder">
                             <input type="submit" value="Register" class="greyishBtn submitForm" />
                             <div class="fix"></div>
