@@ -197,6 +197,15 @@ class IsLoggedIn
 
     public function logout(): void
     {
+        // Revoke the token server-side, not just in the browser — otherwise a
+        // captured cookie value keeps working for its full lifetime after the
+        // user has "logged out".
+        $presented = $_COOKIE[$this->di_config->cookie_name] ?? '';
+        if ($presented !== '') {
+            $stmt = $this->di_pdo->prepare("DELETE FROM `cookies` WHERE `cookie` = ?");
+            $stmt->execute([hash('sha256', $presented)]);
+        }
+
         $this->who_is_logged_in = 0;
         $this->killCookie();
         session_destroy();
