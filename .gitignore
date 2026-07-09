@@ -1,6 +1,6 @@
 .plandex/
 .aider*
-scp_files_to_dh.sh
+scp_files_to_*.sh
 classes/Config.php
 bootstrap_token.txt
 wwwroot/.dh-diag
