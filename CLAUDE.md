@@ -32,11 +32,20 @@ This is a minimalist PHP web application framework designed for DreamHost deploy
 
 ## Development Workflow
 
-### Deployment
+### Editing against a live server
 
-- Uses `scp_files_to_dh.sh` for automatic file watching and deployment to DreamHost
-- Script monitors file changes and syncs to remote server via SSH/SCP
-- Target configured for user "barefoot_rob" on "drc" host
+- `sync_files_to_dh_sample.sh` watches this working copy and copies each **saved file**
+  to the server, one at a time. It is **not** a deploy script: it does not sync the tree,
+  delete anything, or know about git. The first bulk copy of a new site is a separate,
+  manual `rsync -a --exclude .git`.
+- Copy the sample to `sync_files_to_<HOST>.sh`, where `<HOST>` is an ssh `Host` from
+  `~/.ssh/config`. Those copies are gitignored, so the username, host, and key path stay
+  out of the repo.
+- It watches `close_write` **and** `moved_to`, because the Write tool (and emacs, and vim)
+  saves by writing a temp file and renaming it into place. Watching `close_write` alone
+  copies the temp file and never the real one.
+- Transfer is `rsync --relative --secluded-args`, not `scp`: `--relative` creates missing
+  remote directories, and `--secluded-args` keeps filenames away from the remote shell.
 
 ### Initial Setup
 
@@ -94,11 +103,13 @@ This leverages DreamHost's consistent `/home/username/domain.com/` path structur
 - Debug mode: Add `?debug=1` to any URL for additional debugging output
 - Use `print_rob($variable)` function for debugging (similar to `var_dump` but formatted)
 
-### File Deployment
-- **Note**: `scp_files_to_dh.sh` is gitignored and must be created locally
-- Script should monitor file changes and deploy to DreamHost via SCP
-- Target format: `barefoot_rob@drc:/home/username/domain.com/`
-- Alternative: Manual file sync to DreamHost
+### Getting a saved file onto the server
+- Copy `sync_files_to_dh_sample.sh` to `sync_files_to_<HOST>.sh`, set `DEST` and
+  `DEST_PATH` in it, and leave it running in a terminal while you work. Your copy is
+  gitignored; the sample is not.
+- `DEST_PATH` is the **project root** on the server (the directory holding `wwwroot/`,
+  `classes/`, `prepend.php`), not the web root.
+- Do not deploy by pushing to a git remote. Commits are for history, not transport.
 
 ### Database Operations
 - Visit `/admin/migrate_tables.php` to manually apply pending migrations
