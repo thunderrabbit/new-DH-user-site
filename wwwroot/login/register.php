@@ -40,8 +40,21 @@ $creating_admin_user = !$dbExistaroo->firstUserExistBool();
 // it there, and rsync it up with the rest of the site (see README, First install).
 // Nothing here can be registered until you do. Once the first admin exists this
 // value is never consulted again, so a later rsync that restores the file is inert.
+//
+// The token gates the FIRST account only. Whether strangers may sign up afterwards
+// is $config->allow_registration. A Config.php written before that property existed
+// keeps this page open, which is how every site here behaved until now.
 $bootstrap_token_path = $config->app_path . '/bootstrap_token.txt';
 $bootstrap_token_missing = $creating_admin_user && !file_exists($bootstrap_token_path);
+
+$allow_registration = $config->allow_registration ?? true;
+$registration_closed = !$creating_admin_user && !$allow_registration;
+
+if ($registration_closed) {
+    http_response_code(403);
+    echo "<h1>Registration closed</h1><p>This site is not accepting new accounts.</p>";
+    exit;
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // handle form submission...
@@ -97,6 +110,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         echo "<p>User created!  Please <a href='/login'>log in</a> with your new credentials.</p>";
+
+        // Only the admin, standing here once, ever sees this. Say it now: from the
+        // next request onward this page's behaviour depends on a value they set.
+        if ($creating_admin_user) {
+            $state = $allow_registration ? "open" : "closed";
+            echo "<p>By the way, registration is <strong>{$state}</strong> to new users. "
+               . "Change <code>\$allow_registration</code> in <code>classes/Config.php</code>.</p>";
+        }
     } catch (\PDOException $e) {
         if ($e->getCode() == '23000') { // Duplicate key error
             echo "<h1>Error</h1><p>User already exists. Try a different username.</p>";

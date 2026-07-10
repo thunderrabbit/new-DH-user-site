@@ -13,6 +13,7 @@ if ($is_logged_in->isLoggedIn() && $is_logged_in->isAdmin()) {
     $page->setTemplate("admin/index.tpl.php");
     $page->set(name: "site_title", value: $site_title);
     $page->set(name: "site_version", value: SENTIMENTAL_VERSION);
+    $page->set(name: "allow_registration", value: $config->allow_registration ?? true);
     $page->set(name: "username", value: $is_logged_in->getLoggedInUsername());
 
     $pending = $dbExistaroo->getPendingMigrations();

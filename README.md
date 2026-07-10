@@ -77,6 +77,7 @@ and a clean layout system with cookie-based authentication.
    | Property | Notes |
    |---|---|
    | `$site_title` | Shown in `<title>` and the front-page heading |
+   | `$allow_registration` | May strangers sign up? Ships `true`. See *Who may register* |
    | `$domain_name` | **Must equal the browser's `HTTP_HOST`**, or `DBExistaroo` refuses to run |
    | `$cookie_name` | Any name; distinguish it per site |
    | `$app_path` | Project root on the server, e.g. `/home/dh_user/example.com` |
@@ -100,6 +101,24 @@ and a clean layout system with cookie-based authentication.
 
    If you ever lose the token before creating the admin, generate a new one and re-sync it.
    Nothing on the server needs to be cleaned up first.
+
+### Who may register
+
+The token gates the **first** account only, and that account is the admin. It is created even when
+registration is closed — otherwise a closed site could never be set up.
+
+Everyone after that is governed by `$allow_registration` in `classes/Config.php`:
+
+| Value | `/login/register.php` |
+|---|---|
+| `true` | Anyone may create a `role='user'` account, with no token and no login. Ships this way |
+| `false` | 403, on both GET and POST |
+
+The moment you create the first admin, the page tells you which way it is set, and the admin
+dashboard repeats it on every visit. Change the value and re-sync `Config.php` — no other step.
+
+A `Config.php` written before this property existed also behaves as `true`, so upgrading an existing
+site never silently locks its users out.
 
 ---
 
