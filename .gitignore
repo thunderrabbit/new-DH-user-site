@@ -1,6 +1,7 @@
 .plandex/
 .aider*
 sync_files_to_*.sh
+php*.sh
 classes/Config.php
 bootstrap_token.txt
 wwwroot/.dh-diag
