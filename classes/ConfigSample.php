@@ -2,6 +2,7 @@
 
 class Config {
 
+    public $site_title = '';  // shown in <title> and the front-page heading
     public $domain_name = '';  // used for cookies
     public $cookie_name = '';  // used for cookies
     public $cookie_lifetime = 60 * 60 * 24 * 30; // 30 days
