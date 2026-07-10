@@ -15,6 +15,9 @@ This is a minimalist PHP web application framework designed for DreamHost deploy
 - **Authentication**: `classes/Auth/` - Cookie-based login system with IP tracking
 - **Configuration**: Must create `classes/Config.php` from `classes/ConfigSample.php` with actual database credentials
 - **Bootstrap**: `prepend.php` - Application initialization, autoloader, and database checks
+- **One class per file.** `Mlaphp\Autoloader` maps `\Database\EDuplicateKey` to
+  `classes/Database/EDuplicateKey.php`. A second class in a file is unreachable until
+  something else happens to load that file, and the failure looks like `You call that a file?`
 
 ### Database Migration System
 
@@ -49,14 +52,19 @@ This is a minimalist PHP web application framework designed for DreamHost deploy
 
 ### Initial Setup
 
-1. Copy `classes/ConfigSample.php` to `classes/Config.php` and configure database credentials
-2. First visit to site triggers automatic schema creation and admin user setup
-3. Database must exist before application runs (checked by `DBExistaroo`)
+1. Copy `classes/ConfigSample.php` to `classes/Config.php` and fill it in. `$domain_name` must
+   equal the browser's `HTTP_HOST` or `DBExistaroo::domainMatches()` aborts the request.
+2. The database must already exist; the app creates only its own tables (checked by `DBExistaroo`)
+3. First visit applies the `00` and `01` schemas, creating `applied_DB_versions`, `users`, `cookies`
+4. The first admin is **not** created automatically. With `users` empty, every URL redirects to
+   `/login/register.php`, which writes `bootstrap_token.txt` into `$app_path` (above the web root,
+   mode 0600). The token must be read off the server and pasted into the form. It is deleted once
+   the admin exists.
 
 ### Authentication Flow
 
-- Session-based with database-stored cookies
-- First-time setup redirects to admin user creation unless visiting `/login/register.php`
+- Session-based with database-stored cookies; the DB stores a sha256 hash, not the cookie value
+- With no users, every URL redirects to `/login/register.php` (see the bootstrap token above)
 - IP address tracking via `Auth\IPBin` class
 - Login state managed by `Auth\IsLoggedIn` class
 
@@ -113,12 +121,11 @@ This leverages DreamHost's consistent `/home/username/domain.com/` path structur
 
 ### Database Operations
 - Visit `/admin/migrate_tables.php` to manually apply pending migrations
-- Database schemas automatically applied for prefixes "00" and "01"
-- First-time setup creates admin user automatically (or redirects to `/login/register.php`)
+- Database schemas automatically applied for prefixes "00" and "01"; later prefixes need an admin
 
 ## Error Handling and Debugging
 
-- Application bootstrap in `prepend.php:46` performs database existence checks
-- Missing users table triggers admin registration flow (`prepend.php:48-59`)
-- All PHP errors displayed to screen during development (`prepend.php:5-8`)
+- `prepend.php` calls `DBExistaroo::checkaroo()`, which returns an array of errors
+- The sentinel error `YallGotAnyMoreOfThemUsers` is what triggers the registration redirect
+- All PHP errors are displayed to screen during development (`ini_set` calls at the top of `prepend.php`)
 - Template system supports debug context via `?debug=1` parameter
