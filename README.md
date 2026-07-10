@@ -49,7 +49,6 @@ and a clean layout system with optional authentication hooks.
 7. Customize the templates:
    - `/templates/layout/admin_base.tpl.php`: Main layout
    - `/templates/admin/index.tpl.php`: Admin dashboard
-   - `/templates/admin/workers/index.tpl.php`: Example content page
 
 8. Visit `/` to automagically create admin user in the freshly set up TABLEs `users` and `cookies`
 

@@ -12,7 +12,6 @@
     <div class="NavBar">
         <a href="/">View Site</a> |
         <a href="/admin/">Admin Site</a> |
-        <a href="/admin/workers">Workers</a> |
         <div class="dropdown">
             <a href="/profile/">Profile ▾</a>
             <div class="dropdown-menu">
