@@ -2,13 +2,12 @@
     Welcome back, <?= $username ?>!
 </div>
 
-<h1>Slide Chat Forest</h1>
+<h1><?= htmlspecialchars($site_title) ?></h1>
 
 <div class="PagePanel">
     <h2>Quick Actions</h2>
     <ul>
         <li><a href="/admin/">Admin Dashboard</a></li>
-        <li><a href="/admin/workers">Workers Section</a></li>
         <li><a href="/profile/">Profile Settings</a></li>
     </ul>
 </div>

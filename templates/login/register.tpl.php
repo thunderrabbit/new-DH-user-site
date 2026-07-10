@@ -37,7 +37,11 @@
                             <div class="PageInput"><input type="text" name="setup_token" class="validate[required]" id="req4" autocomplete="off" /></div>
                             <div class="fix"></div>
                         </div>
-                        <p class="RegisterSetupHelp">First-run admin creation is protected. Read <code>bootstrap_token.txt</code> from the project root on the server and paste its value here.</p>
+                        <?php if (!empty($bootstrap_token_missing)): ?>
+                        <p class="RegisterSetupHelp">This site has no setup token, so registration is closed. The site owner must deploy one. See the project README.</p>
+                        <?php else: ?>
+                        <p class="RegisterSetupHelp">First-run admin creation is protected. Paste the setup token you generated when you deployed this site.</p>
+                        <?php endif; ?>
                         <?php endif; ?>
                         <div class="PageRow noborder">
                             <input type="submit" value="Register" class="greyishBtn submitForm" />

@@ -1,4 +1,4 @@
-<h1>MarbleTrack3 Table Migration Dashboard</h1>
+<h1>Table Migration Dashboard</h1>
 <script>
     function applyMigration(migration, buttonElement) {
         // AJAX request to apply the migration

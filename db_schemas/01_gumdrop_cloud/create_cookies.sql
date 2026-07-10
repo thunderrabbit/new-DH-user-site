@@ -1,8 +1,9 @@
 CREATE TABLE `cookies` (
   `cookie_id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   -- SHA-256 hex of the remember-me token (64 chars). The plaintext lives only
-  -- in the browser cookie; the DB stores the hash so a dump yields no usable
+  -- in the browser cookie. The DB stores the hash, so a dump yields no usable
   -- session tokens. See \Auth\IsLoggedIn::setAutoLoginCookie().
+  -- Keep semicolons out of these comments. executeMultipleSQL() splits on them.
   `cookie` CHAR(64) COLLATE utf8mb4_bin NOT NULL,
   `user_id` INT UNSIGNED NOT NULL,
   `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,

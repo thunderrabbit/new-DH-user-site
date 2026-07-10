@@ -15,6 +15,9 @@ This is a minimalist PHP web application framework designed for DreamHost deploy
 - **Authentication**: `classes/Auth/` - Cookie-based login system with IP tracking
 - **Configuration**: Must create `classes/Config.php` from `classes/ConfigSample.php` with actual database credentials
 - **Bootstrap**: `prepend.php` - Application initialization, autoloader, and database checks
+- **One class per file.** `Mlaphp\Autoloader` maps `\Database\EDuplicateKey` to
+  `classes/Database/EDuplicateKey.php`. A second class in a file is unreachable until
+  something else happens to load that file, and the failure looks like `You call that a file?`
 
 ### Database Migration System
 
@@ -32,22 +35,42 @@ This is a minimalist PHP web application framework designed for DreamHost deploy
 
 ## Development Workflow
 
-### Deployment
+### Editing against a live server
 
-- Uses `scp_files_to_dh.sh` for automatic file watching and deployment to DreamHost
-- Script monitors file changes and syncs to remote server via SSH/SCP
-- Target configured for user "barefoot_rob" on "drc" host
+- `sync_files_to_dh_sample.sh` watches this working copy and copies each **saved file**
+  to the server, one at a time. It is **not** a deploy script: it does not sync the tree,
+  delete anything, or know about git. The first bulk copy of a new site is a separate,
+  manual `rsync -a --exclude .git`.
+- Copy the sample to `sync_files_to_<HOST>.sh`, where `<HOST>` is an ssh `Host` from
+  `~/.ssh/config`. Those copies are gitignored, so the username, host, and key path stay
+  out of the repo.
+- It watches `close_write` **and** `moved_to`, because the Write tool (and emacs, and vim)
+  saves by writing a temp file and renaming it into place. Watching `close_write` alone
+  copies the temp file and never the real one.
+- Transfer is `rsync --relative --secluded-args`, not `scp`: `--relative` creates missing
+  remote directories, and `--secluded-args` keeps filenames away from the remote shell.
 
 ### Initial Setup
 
-1. Copy `classes/ConfigSample.php` to `classes/Config.php` and configure database credentials
-2. First visit to site triggers automatic schema creation and admin user setup
-3. Database must exist before application runs (checked by `DBExistaroo`)
+1. Copy `classes/ConfigSample.php` to `classes/Config.php` and fill it in. `$domain_name` must
+   equal the browser's `HTTP_HOST` or `DBExistaroo::domainMatches()` aborts the request.
+2. The database must already exist; the app creates only its own tables (checked by `DBExistaroo`)
+3. First visit applies the `00` and `01` schemas, creating `applied_DB_versions`, `users`, `cookies`
+4. The first admin is **not** created automatically. With `users` empty, every URL redirects to
+   `/login/register.php`, which refuses to register anyone unless `bootstrap_token.txt` is present
+   in `$app_path` (above the web root). The operator generates that file locally and rsyncs it up
+   before deploying; the site never creates it. Deleted once the admin exists, and never consulted
+   again afterwards. The public page must not disclose the token's path or the ssh username.
 
 ### Authentication Flow
 
-- Session-based with database-stored cookies
-- First-time setup redirects to admin user creation unless visiting `/login/register.php`
+- Session-based with database-stored cookies; the DB stores a sha256 hash, not the cookie value
+- With no users, every URL redirects to `/login/register.php` (see the bootstrap token above)
+- **Open registration is intentional, and now switchable.** The token gates only the first account
+  (the admin), which is created even when registration is closed. Everyone after is governed by
+  `$config->allow_registration`: `true` is the shipped default; `false` makes `/login/register.php`
+  return 403 on GET and POST. Read it as `?? true` so a `Config.php` predating the property keeps its
+  old behaviour instead of locking a live site's users out.
 - IP address tracking via `Auth\IPBin` class
 - Login state managed by `Auth\IsLoggedIn` class
 
@@ -94,20 +117,21 @@ This leverages DreamHost's consistent `/home/username/domain.com/` path structur
 - Debug mode: Add `?debug=1` to any URL for additional debugging output
 - Use `print_rob($variable)` function for debugging (similar to `var_dump` but formatted)
 
-### File Deployment
-- **Note**: `scp_files_to_dh.sh` is gitignored and must be created locally
-- Script should monitor file changes and deploy to DreamHost via SCP
-- Target format: `barefoot_rob@drc:/home/username/domain.com/`
-- Alternative: Manual file sync to DreamHost
+### Getting a saved file onto the server
+- Copy `sync_files_to_dh_sample.sh` to `sync_files_to_<HOST>.sh`, set `DEST` and
+  `DEST_PATH` in it, and leave it running in a terminal while you work. Your copy is
+  gitignored; the sample is not.
+- `DEST_PATH` is the **project root** on the server (the directory holding `wwwroot/`,
+  `classes/`, `prepend.php`), not the web root.
+- Do not deploy by pushing to a git remote. Commits are for history, not transport.
 
 ### Database Operations
 - Visit `/admin/migrate_tables.php` to manually apply pending migrations
-- Database schemas automatically applied for prefixes "00" and "01"
-- First-time setup creates admin user automatically (or redirects to `/login/register.php`)
+- Database schemas automatically applied for prefixes "00" and "01"; later prefixes need an admin
 
 ## Error Handling and Debugging
 
-- Application bootstrap in `prepend.php:46` performs database existence checks
-- Missing users table triggers admin registration flow (`prepend.php:48-59`)
-- All PHP errors displayed to screen during development (`prepend.php:5-8`)
+- `prepend.php` calls `DBExistaroo::checkaroo()`, which returns an array of errors
+- The sentinel error `YallGotAnyMoreOfThemUsers` is what triggers the registration redirect
+- All PHP errors are displayed to screen during development (`ini_set` calls at the top of `prepend.php`)
 - Template system supports debug context via `?debug=1` parameter
