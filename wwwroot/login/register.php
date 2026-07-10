@@ -34,19 +34,14 @@ $creating_admin_user = !$dbExistaroo->firstUserExistBool();
 // otherwise hand the admin account to whoever browses the site first (scanners
 // find new vhosts fast, and the app funnels every URL here while the users table
 // is empty). The token file lives in the project root — OUTSIDE the web root —
-// so only someone with server access can read it. Flow: open this page, read the
-// token off the server, paste it into the form. Deleted once the first admin
-// exists.
+// so only someone with server access can read it.
+//
+// This page does NOT create the token. You generate it on your own machine, read
+// it there, and rsync it up with the rest of the site (see README, First install).
+// Nothing here can be registered until you do. Once the first admin exists this
+// value is never consulted again, so a later rsync that restores the file is inert.
 $bootstrap_token_path = $config->app_path . '/bootstrap_token.txt';
-if ($creating_admin_user && !file_exists($bootstrap_token_path)) {
-    $generated = bin2hex(random_bytes(16));
-    if (file_put_contents($bootstrap_token_path, $generated . "\n", LOCK_EX) === false) {
-        error_log("register.php: could not write bootstrap token to {$bootstrap_token_path}");
-        http_response_code(500);
-        exit('500 — could not create bootstrap token file');
-    }
-    @chmod($bootstrap_token_path, 0600);
-}
+$bootstrap_token_missing = $creating_admin_user && !file_exists($bootstrap_token_path);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // handle form submission...
@@ -69,8 +64,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($creating_admin_user) {
         $setup_token = trim((string) ($_POST['setup_token'] ?? ''));
         $expected    = trim((string) @file_get_contents($bootstrap_token_path));
-        if ($expected === '' || $setup_token === '' || !hash_equals($expected, $setup_token)) {
-            $errors[] = "Setup token missing or incorrect. Read bootstrap_token.txt from the server and paste its value.";
+        if ($expected === '') {
+            $errors[] = "No setup token on the server. Create bootstrap_token.txt in the project root and deploy it. See README, First install.";
+        } elseif ($setup_token === '' || !hash_equals($expected, $setup_token)) {
+            $errors[] = "Setup token missing or incorrect.";
         }
     }
 
@@ -111,6 +108,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $page = new \Template(config: $config);
     $page->setTemplate("login/register.tpl.php");
     $page->set('creating_admin_user', $creating_admin_user);
+    $page->set('bootstrap_token_missing', $bootstrap_token_missing);
     $page->echoToScreen();
     exit;
 }
