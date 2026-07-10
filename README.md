@@ -45,13 +45,27 @@ and a clean layout system with cookie-based authentication.
 3. **Create the database** in the DreamHost panel, with a user granted on it.
    The application will create its own *tables*, but it will not create the database.
 
-4. **Clone this repo locally**, then copy the whole tree to the server once:
+4. **Clone this repo locally**, then generate the setup token that will let you — and only
+   you — create the first admin user:
+
+   ```bash
+   openssl rand -hex 16 > bootstrap_token.txt
+   chmod 600 bootstrap_token.txt
+   cat bootstrap_token.txt          # keep this on screen; you will paste it in step 7
+   ```
+
+   The file is gitignored. It sits in the project root, which is **above** the web root, so
+   it is never web-readable. The site does not create this file and cannot be registered
+   without it.
+
+   Now copy the whole tree to the server:
 
    ```bash
    rsync -a --exclude .git ./ example:/home/dh_user/example.com/
    ```
 
-   where `example` is an ssh `Host` you have defined in `~/.ssh/config`.
+   where `example` is an ssh `Host` you have defined in `~/.ssh/config`. The token goes up
+   with everything else — `rsync` does not read `.gitignore`.
 
    ⚠️ The target directory may already contain DreamHost's own `.dh-diag → /dh/web/diag`
    symlink, which is owned by `root`. Do not try to remove it, and do not `git clone`
@@ -74,12 +88,18 @@ and a clean layout system with cookie-based authentication.
    `01` schemas, creating `applied_DB_versions`, `users`, and `cookies`. With `users`
    empty, every URL redirects to `/login/register.php`.
 
-7. **Create the first admin.** Loading `/login/register.php` writes a random
-   `bootstrap_token.txt` into `$app_path` — above the web root, `chmod 0600`. Read it over
-   ssh and paste it into the form along with your username and password. Without the token
-   the form is refused: a fresh vhost is found by scanners quickly, and the first visitor
-   would otherwise be handed the admin account. The token file is deleted once the admin
-   exists.
+7. **Create the first admin.** On `/login/register.php`, paste the token from step 4 along
+   with the username and password you want. The gate exists because a fresh vhost is found
+   by scanners quickly, and without it the first visitor would be handed the admin account.
+   The page tells an anonymous visitor nothing about where the token lives.
+
+   The server deletes its copy once the admin exists, and after that the value is never
+   consulted again — so a later `rsync` that restores the file is inert.
+
+8. **Delete your local copy** of `bootstrap_token.txt`. It has done its job.
+
+   If you ever lose the token before creating the admin, generate a new one and re-sync it.
+   Nothing on the server needs to be cleaned up first.
 
 ---
 

@@ -57,9 +57,10 @@ This is a minimalist PHP web application framework designed for DreamHost deploy
 2. The database must already exist; the app creates only its own tables (checked by `DBExistaroo`)
 3. First visit applies the `00` and `01` schemas, creating `applied_DB_versions`, `users`, `cookies`
 4. The first admin is **not** created automatically. With `users` empty, every URL redirects to
-   `/login/register.php`, which writes `bootstrap_token.txt` into `$app_path` (above the web root,
-   mode 0600). The token must be read off the server and pasted into the form. It is deleted once
-   the admin exists.
+   `/login/register.php`, which refuses to register anyone unless `bootstrap_token.txt` is present
+   in `$app_path` (above the web root). The operator generates that file locally and rsyncs it up
+   before deploying; the site never creates it. Deleted once the admin exists, and never consulted
+   again afterwards. The public page must not disclose the token's path or the ssh username.
 
 ### Authentication Flow
 

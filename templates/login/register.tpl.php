@@ -38,7 +38,7 @@
                             <div class="fix"></div>
                         </div>
                         <?php if (!empty($bootstrap_token_missing)): ?>
-                        <p class="RegisterSetupHelp">No setup token has been deployed. Nobody can register until one is.</p>
+                        <p class="RegisterSetupHelp">This site has no setup token, so registration is closed. The site owner must deploy one. See the project README.</p>
                         <?php else: ?>
                         <p class="RegisterSetupHelp">First-run admin creation is protected. Paste the setup token you generated when you deployed this site.</p>
                         <?php endif; ?>

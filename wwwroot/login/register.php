@@ -65,7 +65,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $setup_token = trim((string) ($_POST['setup_token'] ?? ''));
         $expected    = trim((string) @file_get_contents($bootstrap_token_path));
         if ($expected === '') {
-            $errors[] = "No setup token on the server. Create bootstrap_token.txt in the project root and deploy it. See README, First install.";
+            // Deliberately vague: this page is public while the users table is
+            // empty. The operator knows where the token goes; a scanner must not
+            // learn the username or the path. See README, First install.
+            $errors[] = "This site has no setup token, so registration is closed. The site owner must deploy one. See the project README.";
         } elseif ($setup_token === '' || !hash_equals($expected, $setup_token)) {
             $errors[] = "Setup token missing or incorrect.";
         }
