@@ -108,7 +108,10 @@ class IsLoggedIn
         ];
 
         // Insert using native PDO
-        $stmt = $this->di_pdo->prepare("INSERT INTO `cookies` (`user_id`, `cookie`, `last_access`, `user_agent_md5`, `ip_address`) VALUES (?, ?, ?, ?, ?)");
+        $stmt = $this->di_pdo->prepare(
+            "INSERT INTO `cookies` (`user_id`, `cookie`, `last_access`, `user_agent_md5`, `ip_address`)
+             VALUES (?, ?, ?, ?, ?)"
+        );
         $stmt->execute(array_values($record));
 
         $cookie_options = [
@@ -125,7 +128,9 @@ class IsLoggedIn
     private function getIDandPHPHashedPasswordForUsername($username)
     {
         // get password hash
-        $stmt = $this->di_pdo->prepare("SELECT `user_id`, `password_hash` FROM `users` WHERE LOWER(`username`) = LOWER(?) LIMIT 1");
+        $stmt = $this->di_pdo->prepare(
+            "SELECT `user_id`, `password_hash` FROM `users` WHERE LOWER(`username`) = LOWER(?) LIMIT 1"
+        );
         $stmt->execute([$username]);
         $result = $stmt->fetchAll();
 
@@ -168,7 +173,10 @@ class IsLoggedIn
         string $user_agent
     ): int {
         $varbinary_ip = \Auth\IPBin::ipToBinary($ip_address);
-        $stmt = $this->di_pdo->prepare("SELECT `user_id` FROM `cookies` WHERE `cookie` = ? AND `ip_address` = ? AND `user_agent_md5` = ? LIMIT 1");
+        $stmt = $this->di_pdo->prepare(
+            "SELECT `user_id` FROM `cookies`
+             WHERE `cookie` = ? AND `ip_address` = ? AND `user_agent_md5` = ? LIMIT 1"
+        );
         $stmt->execute([hash('sha256', $cookie), $varbinary_ip, md5($user_agent)]);
         $result = $stmt->fetchAll();
 

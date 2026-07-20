@@ -6,7 +6,9 @@ class Template
 
     protected $vars;
 
-    protected $mla_request;      // Encapsulates superglobals e.g. $SESSION, $REQUEST, etc (misspelled in this comment to keep searches clean)
+    // Encapsulates superglobals e.g. $SESSION, $REQUEST, etc
+    // (misspelled in this comment to keep searches clean)
+    protected $mla_request;
     protected $di_dbase;
 
     public function __construct(\Config $config)

@@ -52,7 +52,9 @@ class Base
                     $offset = sprintf('%+d:%02d', $hrs * $sgn, $mins);
                     self::$pdo->exec("SET time_zone='$offset'");
                 } catch (\PDOException $e2) {
-                    throw new \Database\EDatabaseException("Could not connect to server after trying with 1s sleep: " . $e2->getMessage());
+                    throw new \Database\EDatabaseException(
+                        "Could not connect to server after trying with 1s sleep: " . $e2->getMessage()
+                    );
                 }
             }
         }
@@ -116,7 +118,9 @@ class Base
                 try {
                     $pdo->exec($statement);
                 } catch (\PDOException $e) {
-                    throw new \Database\EDatabaseException("Error executing statement: $statement. Error: " . $e->getMessage());
+                    throw new \Database\EDatabaseException(
+                        "Error executing statement: $statement. Error: " . $e->getMessage()
+                    );
                 }
             }
         }

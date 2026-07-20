@@ -15,7 +15,6 @@
 
     <rule ref="PSR12">
         <!-- Pending manual cleanup (violation counts at adoption, 2026-07-20): -->
-        <exclude name="Generic.Files.LineLength"/>      <!-- 8: long lines -->
         <exclude name="PSR1.Classes.ClassDeclaration"/> <!-- 3: missing namespace (Template, Utilities, ConfigSample) -->
     </rule>
 </ruleset>

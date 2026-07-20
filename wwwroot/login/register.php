@@ -84,7 +84,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Deliberately vague: this page is public while the users table is
             // empty. The operator knows where the token goes; a scanner must not
             // learn the username or the path. See README, First install.
-            $errors[] = "This site has no setup token, so registration is closed. The site owner must deploy one. See the project README.";
+            $errors[] = "This site has no setup token, so registration is closed. "
+                . "The site owner must deploy one. See the project README.";
         } elseif ($setup_token === '' || !hash_equals($expected, $setup_token)) {
             $errors[] = "Setup token missing or incorrect.";
         }
