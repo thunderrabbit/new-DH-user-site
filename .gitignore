@@ -6,3 +6,9 @@ classes/Config.php
 bootstrap_token.txt
 wwwroot/.dh-diag
 wwwroot/favicon.*
+vendor/
+Tests/_output/*
+!Tests/_output/.gitkeep
+Tests/_envs/
+Tests/Support/_generated/*
+!Tests/Support/_generated/.gitkeep
