@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<ruleset name="new-DH-user-site">
+    <description>
+        Template style gate: full PSR-12, no excludes, kept green via phpcbf.
+        (templates/*.tpl.php are mixed HTML/PHP and out of scope.) Clones
+        inherit this file, so keeping it strict keeps every future site strict.
+    </description>
+
+    <file>classes</file>
+    <file>wwwroot</file>
+    <exclude-pattern>*/vendor/*</exclude-pattern>
+
+    <rule ref="PSR12"/>
+</ruleset>

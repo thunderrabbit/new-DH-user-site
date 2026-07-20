@@ -1,7 +1,9 @@
 <?php
 
-class Config {
+namespace Config;
 
+class Config
+{
     public $site_title = '';  // shown in <title> and the front-page heading
 
     // May strangers create their own role='user' account at /login/register.php?

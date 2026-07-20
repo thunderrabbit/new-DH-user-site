@@ -1,10 +1,12 @@
 <?php
+
 /**
  * This file is part of "Modernizing Legacy Applications in PHP".
  *
  * @copyright 2014-2023 Paul M. Jones <pmjones88@gmail.com>
  * @license http://opensource.org/licenses/bsd-license.php BSD
  */
+
 namespace Mlaphp;
 
 use DomainException;
@@ -152,7 +154,7 @@ class Request
     public function __isset($name)
     {
         if ($name != 'session') {
-            throw new InvalidArgumentException;
+            throw new InvalidArgumentException();
         }
 
         return isset($_SESSION);
@@ -168,7 +170,7 @@ class Request
     public function __unset($name)
     {
         if ($name != 'session') {
-            throw new InvalidArgumentException;
+            throw new InvalidArgumentException();
         }
 
         unset($_SESSION);

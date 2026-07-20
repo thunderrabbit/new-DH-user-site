@@ -1,4 +1,7 @@
 <?php
+
 namespace Database;
 
-class MySQLiCouldNotConnectToServer extends ECouldNotConnectToServer {}
+class MySQLiCouldNotConnectToServer extends ECouldNotConnectToServer
+{
+}

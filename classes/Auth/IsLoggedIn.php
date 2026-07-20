@@ -1,11 +1,12 @@
 <?php
+
 /**
  * This file tries to simplify knowing if user is logged in.
  *
  *
  */
-namespace Auth;
 
+namespace Auth;
 
 class IsLoggedIn
 {
@@ -14,31 +15,29 @@ class IsLoggedIn
     private string $loggedInUsername = 'YUNOset?'; // default value, should be overwritten if user is logged in
     public function __construct(
         private \PDO $di_pdo,
-        private \Config $di_config,
+        private \Config\Config $di_config,
+        private RandomToken $di_token,
     ) {
     }
 
     public function checkLogin(\Mlaphp\Request $mla_request): void
     {
         $found_user_id = 0;
-        if(!empty($mla_request->cookie[$this->di_config->cookie_name]))
-        {
+        if (!empty($mla_request->cookie[$this->di_config->cookie_name])) {
             $found_user_id = $this->getUserIdForCookieInDatabase(
                 cookie: $mla_request->cookie[$this->di_config->cookie_name],
                 ip_address: $_SERVER['REMOTE_ADDR'] ?? '',
                 user_agent: $_SERVER['HTTP_USER_AGENT'] ?? ''
             );
-            if(empty($found_user_id))
-            {
+            if (empty($found_user_id)) {
                 $this->killCookie();
                 $this->who_is_logged_in = 0;
             } else {
                 $this->who_is_logged_in = $found_user_id;
             }
-        } elseif(!empty($mla_request->post['username']) && !empty($mla_request->post['pass'])) {
+        } elseif (!empty($mla_request->post['username']) && !empty($mla_request->post['pass'])) {
             $found_user_id = $this->checkPHPHashedPassword($mla_request->post['username'], $mla_request->post['pass']);
-            if(empty($found_user_id))
-            {
+            if (empty($found_user_id)) {
                 $this->killCookie();        // bad login, so kill any cookie
                 $this->who_is_logged_in = 0;
             } else {
@@ -93,9 +92,9 @@ class IsLoggedIn
     {
         return $this->getUserRole() === 'admin';
     }
-    private function setAutoLoginCookie(int $user_id):void
+    private function setAutoLoginCookie(int $user_id): void
     {
-        $cookie = \Utilities::randomString(32);
+        $cookie = $this->di_token->generate(32);
 
         $record = [
             'user_id' => $user_id,
@@ -110,7 +109,10 @@ class IsLoggedIn
         ];
 
         // Insert using native PDO
-        $stmt = $this->di_pdo->prepare("INSERT INTO `cookies` (`user_id`, `cookie`, `last_access`, `user_agent_md5`, `ip_address`) VALUES (?, ?, ?, ?, ?)");
+        $stmt = $this->di_pdo->prepare(
+            "INSERT INTO `cookies` (`user_id`, `cookie`, `last_access`, `user_agent_md5`, `ip_address`)
+             VALUES (?, ?, ?, ?, ?)"
+        );
         $stmt->execute(array_values($record));
 
         $cookie_options = [
@@ -127,7 +129,9 @@ class IsLoggedIn
     private function getIDandPHPHashedPasswordForUsername($username)
     {
         // get password hash
-        $stmt = $this->di_pdo->prepare("SELECT `user_id`, `password_hash` FROM `users` WHERE LOWER(`username`) = LOWER(?) LIMIT 1");
+        $stmt = $this->di_pdo->prepare(
+            "SELECT `user_id`, `password_hash` FROM `users` WHERE LOWER(`username`) = LOWER(?) LIMIT 1"
+        );
         $stmt->execute([$username]);
         $result = $stmt->fetchAll();
 
@@ -168,19 +172,18 @@ class IsLoggedIn
         string $cookie,
         string $ip_address,
         string $user_agent
-    ): int
-    {
+    ): int {
         $varbinary_ip = \Auth\IPBin::ipToBinary($ip_address);
-        $stmt = $this->di_pdo->prepare("SELECT `user_id` FROM `cookies` WHERE `cookie` = ? AND `ip_address` = ? AND `user_agent_md5` = ? LIMIT 1");
+        $stmt = $this->di_pdo->prepare(
+            "SELECT `user_id` FROM `cookies`
+             WHERE `cookie` = ? AND `ip_address` = ? AND `user_agent_md5` = ? LIMIT 1"
+        );
         $stmt->execute([hash('sha256', $cookie), $varbinary_ip, md5($user_agent)]);
         $result = $stmt->fetchAll();
 
-        if(count($result) > 0)
-        {
+        if (count($result) > 0) {
             return $result[0]['user_id'];
-        }
-        else
-        {
+        } else {
             return 0;
         }
     }
@@ -224,5 +227,4 @@ class IsLoggedIn
         setcookie($this->di_config->cookie_name, '', $cookie_options);
         $this->who_is_logged_in = 0;
     }
-
 }

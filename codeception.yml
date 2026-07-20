@@ -1,0 +1,12 @@
+namespace: Tests
+support_namespace: Support
+paths:
+    tests: Tests
+    output: Tests/_output
+    data: Tests/Support/Data
+    support: Tests/Support
+    envs: Tests/_envs
+actor_suffix: Tester
+extensions:
+    enabled:
+        - Codeception\Extension\RunFailed

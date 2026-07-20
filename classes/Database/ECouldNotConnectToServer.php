@@ -1,4 +1,7 @@
 <?php
+
 namespace Database;
 
-class ECouldNotConnectToServer extends EDatabaseException {}
+class ECouldNotConnectToServer extends EDatabaseException
+{
+}

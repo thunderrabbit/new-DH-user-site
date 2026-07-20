@@ -1,4 +1,7 @@
 <?php
+
 namespace Database;
 
-class EDatabaseException extends \Exception {}
+class EDatabaseException extends \Exception
+{
+}

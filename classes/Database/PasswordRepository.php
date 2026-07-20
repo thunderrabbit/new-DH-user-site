@@ -1,4 +1,5 @@
 <?php
+
 namespace Database;
 
 class PasswordRepository
@@ -74,7 +75,6 @@ class PasswordRepository
     {
         // Verify current password
         if (!$this->verifyPassword($user_id, $current_password)) {
-
             return [
                 'success' => false,
                 'message' => 'Current password is incorrect.'

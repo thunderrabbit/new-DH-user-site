@@ -1,4 +1,7 @@
 <?php
+
 namespace Database;
 
-class EDatabaseMissing extends EDatabaseException {}
+class EDatabaseMissing extends EDatabaseException
+{
+}

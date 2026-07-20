@@ -1,21 +1,28 @@
 <?php
 
-class Template{
+namespace View;
+
+class Template
+{
     protected $template_location;
 
     protected $vars;
 
-    protected $mla_request;      // Encapsulates superglobals e.g. $SESSION, $REQUEST, etc (misspelled in this comment to keep searches clean)
+    // Encapsulates superglobals e.g. $SESSION, $REQUEST, etc
+    // (misspelled in this comment to keep searches clean)
+    protected $mla_request;
     protected $di_dbase;
 
-    public function __construct(\Config $config) {
+    public function __construct(\Config\Config $config)
+    {
         $this->template_location = "{$config->app_path}/templates";
 
         $this->vars = [];
     }
 
-    public function setTemplate($template_file) {
-        $this->template_location = $this->template_location."/".$template_file;
+    public function setTemplate($template_file)
+    {
+        $this->template_location = $this->template_location . "/" . $template_file;
     }
 
     /**
@@ -24,11 +31,13 @@ class Template{
      * @param mixed $value mixed so array of file names can be passed in /list/index.php
      * @return void
      */
-    public function set(string $name, mixed $value) {
+    public function set(string $name, mixed $value)
+    {
         $this->vars[$name] = $value;
     }
 
-    public function echoToScreen(): void {
+    public function echoToScreen(): void
+    {
         echo $this->loadTemplate(); // Display the contents directly to the page
     }
 
@@ -40,21 +49,23 @@ class Template{
      * It is used to get the inner content of what will be sent to a base template.
      * @return bool|string
      */
-    public function grabTheGoods(): string {
+    public function grabTheGoods(): string
+    {
         return $this->loadTemplate();
     }
 
-    protected function loadTemplate(): string {
+    protected function loadTemplate(): string
+    {
         $charEncode = "UTF-8";
-        extract($this->vars);          	// Extract the vars to local namespace
+        extract($this->vars);           // Extract the vars to local namespace
 
-        ob_start();                    	// Start output buffering
+        ob_start();                     // Start output buffering
 
-        if(!isset($this->template_location)) {
+        if (!isset($this->template_location)) {
             echo "No template file provided";
         }
 
-        include($this->template_location);	// Include the file
+        include($this->template_location);  // Include the file
 
         $ob_result = ob_get_clean();
 

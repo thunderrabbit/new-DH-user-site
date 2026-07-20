@@ -12,10 +12,10 @@ $autoloader = new \Mlaphp\Autoloader();
 spl_autoload_register(array($autoloader, 'load'));
 
 $mla_request = new \Mlaphp\Request();
-$config = new \Config();
+$config = new \Config\Config();
 
 try {
-    $config = new \Config();
+    $config = new \Config\Config();
 } catch (\Exception $e) {
     echo "Couldn't create Config cause " . $e->getMessage();
     exit;
@@ -26,6 +26,7 @@ $mla_database = \Database\Base::getPDO($config);
 $dbExistaroo = new \Database\DBExistaroo(
     config: $config,
     pdo: $mla_database,
+    schema_path: new \Database\SchemaPath($config->app_path),
 );
 
 $creating_admin_user = !$dbExistaroo->firstUserExistBool();
@@ -65,12 +66,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // Validate input
     $errors = [];
-    if (empty($username))
+    if (empty($username)) {
         $errors[] = "Username is required.";
-    if (empty($password))
+    }
+    if (empty($password)) {
         $errors[] = "Password is required.";
-    if ($password !== $password_confirm)
+    }
+    if ($password !== $password_confirm) {
         $errors[] = "Passwords do not match.";
+    }
 
     // Bootstrap path: the posted setup token must match the server-side file.
     // hash_equals for a constant-time compare (the token is a credential).
@@ -81,7 +85,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Deliberately vague: this page is public while the users table is
             // empty. The operator knows where the token goes; a scanner must not
             // learn the username or the path. See README, First install.
-            $errors[] = "This site has no setup token, so registration is closed. The site owner must deploy one. See the project README.";
+            $errors[] = "This site has no setup token, so registration is closed. "
+                . "The site owner must deploy one. See the project README.";
         } elseif ($setup_token === '' || !hash_equals($expected, $setup_token)) {
             $errors[] = "Setup token missing or incorrect.";
         }
@@ -90,8 +95,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // If errors, redisplay form with errors
     if (!empty($errors)) {
         echo "<h1>Registration Errors</h1><ul>";
-        foreach ($errors as $e)
+        foreach ($errors as $e) {
             echo "<li>" . htmlspecialchars($e) . "</li>";
+        }
         echo "</ul><a href=\"/\">Go back</a>";
         exit;
     }
@@ -116,7 +122,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($creating_admin_user) {
             $state = $allow_registration ? "open" : "closed";
             echo "<p>By the way, registration is <strong>{$state}</strong> to new users. "
-               . "Change <code>\$allow_registration</code> in <code>classes/Config.php</code>.</p>";
+               . "Change <code>\$allow_registration</code> in <code>classes/Config/Config.php</code>.</p>";
         }
     } catch (\PDOException $e) {
         if ($e->getCode() == '23000') { // Duplicate key error
@@ -127,15 +133,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     exit;
-
 } else {
-    $page = new \Template(config: $config);
+    $page = new \View\Template(config: $config);
     $page->setTemplate("login/register.tpl.php");
     $page->set('creating_admin_user', $creating_admin_user);
     $page->set('bootstrap_token_missing', $bootstrap_token_missing);
     $page->echoToScreen();
     exit;
 }
-
-
-
