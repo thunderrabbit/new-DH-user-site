@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<ruleset name="new-DH-user-site">
+    <description>
+        Template style gate: PSR-12, kept green via phpcbf. The excludes below
+        are PSR-12 sniffs the template does not yet satisfy AND phpcbf cannot
+        auto-fix (they need manual code changes). Remove an exclude once its
+        code is cleaned up. (templates/*.tpl.php are mixed HTML/PHP and out of
+        scope.) Clones inherit this file, so keeping it strict keeps every
+        future site strict.
+    </description>
+
+    <file>classes</file>
+    <file>wwwroot</file>
+    <exclude-pattern>*/vendor/*</exclude-pattern>
+
+    <rule ref="PSR12">
+        <!-- Pending manual cleanup (violation counts at adoption, 2026-07-20): -->
+        <exclude name="Generic.Files.LineLength"/>      <!-- 8: long lines -->
+        <exclude name="PSR1.Classes.ClassDeclaration"/> <!-- 3: missing namespace (Template, Utilities, ConfigSample) -->
+    </rule>
+</ruleset>
