@@ -67,5 +67,5 @@ if (!empty($errors)) {
     exit;
 }
 
-$is_logged_in = new \Auth\IsLoggedIn($mla_database, $config);
+$is_logged_in = new \Auth\IsLoggedIn($mla_database, $config, new \Auth\RandomToken());
 $is_logged_in->checkLogin($mla_request);
