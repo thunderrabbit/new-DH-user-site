@@ -84,7 +84,9 @@ This is a minimalist PHP web application framework designed for DreamHost deploy
 
 ## Development Notes
 
-- No package manager (composer/npm) - pure PHP with custom autoloader
+- Composer is dev-only (codeception, phpcs); the app itself is pure PHP with a custom
+  autoloader and no runtime dependencies. `vendor/` is gitignored — populate it with
+  the containerized composer command below. Nothing in `vendor/` deploys.
 - Debug mode available via `?debug=1` URL parameter
 - Uses `print_rob()` function for debugging output
 - Error display enabled in `prepend.php` for development
@@ -112,7 +114,7 @@ This leverages DreamHost's consistent `/home/username/domain.com/` path structur
 ## Common Development Tasks
 
 ### Local Development
-- No build, test, or lint commands - pure PHP development
+- No build step - pure PHP development (tests and style gates below)
 - PHP errors displayed on screen via `prepend.php` configuration
 - Debug mode: Add `?debug=1` to any URL for additional debugging output
 - Use `print_rob($variable)` function for debugging (similar to `var_dump` but formatted)
@@ -128,6 +130,36 @@ This leverages DreamHost's consistent `/home/username/domain.com/` path structur
 ### Database Operations
 - Visit `/admin/migrate_tables.php` to manually apply pending migrations
 - Database schemas automatically applied for prefixes "00" and "01"; later prefixes need an admin
+
+## Standards gates (unit tests + phpcs) — run BEFORE you commit
+
+The template carries the two commit-tier gates from `~/work/rob/standards-mcp`
+(hermetic: read-only mount, no network, no credentials). Clones inherit them.
+
+    ~/work/rob/standards-mcp/run-unit.sh  <this repo>   # Codeception Unit suite
+    ~/work/rob/standards-mcp/run-phpcs.sh <this repo>   # PSR-12 style gate
+
+Both must pass (or the change is not commit-ready). Setup and fixing:
+
+- Populate `vendor/` once per clone (rootless docker, so container root writes
+  as your user):
+
+      docker run --rm -e COMPOSER_HOME=/tmp/composer -v "$PWD":/app -w /app \
+        composer:2 composer install --no-interaction
+
+  `config.platform.php` pins resolution to php 8.3 (the runner's php) — don't
+  remove it, or composer will resolve packages too new to parse.
+
+- Style failures: auto-fix first, then re-check:
+
+      docker run --rm --network none -v "$PWD":/app -w /app \
+        standards-codeception-runner:php8.3 php -d memory_limit=1G vendor/bin/phpcbf
+
+- The ruleset is `phpcs.xml` — PSR-12 with two excludes documented inline
+  (pending manual cleanup). `templates/*.tpl.php` are out of scope.
+- Unit tests live in `Tests/Unit/`; the suite bootstraps its own autoloader and
+  must stay DB-free and session-free (see `Tests/Unit/_bootstrap.php`). A test
+  that needs a live DB or endpoint does not belong in the Unit suite.
 
 ## Error Handling and Debugging
 
