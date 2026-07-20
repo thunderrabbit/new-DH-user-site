@@ -2,7 +2,7 @@
 .aider*
 sync_files_to_*.sh
 php*.sh
-classes/Config.php
+classes/Config/Config.php
 bootstrap_token.txt
 wwwroot/.dh-diag
 wwwroot/favicon.*

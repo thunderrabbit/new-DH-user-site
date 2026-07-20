@@ -1,35 +1,23 @@
 <?php
 
-class Utilities
+namespace Database;
+
+/**
+ * Resolves a migration's relative path (e.g. "00_bedrock/create_users.sql")
+ * to a validated absolute path under $app_path/db_schemas.
+ * Kept free of PDO/Config so the checks stay unit-testable without a DB.
+ */
+class SchemaPath
 {
-    public static function randomString(
-        int $length,
-        string $possible = ""
-    ): string {
-        $randString = "";
-        // define possible characters
-        if (empty($possible)) {
-            $possible = "0123456789abcdfghjkmnopqrstuvwxyzABCDEFGHJKLMNOPQRSTUVWXYZ";
-        }
-        // add random characters
-        for ($i = 0; $i < $length; $i++) {
-            // pick a random character from the possible ones
-            $char = substr($possible, random_int(0, strlen($possible) - 1), 1);
-            $randString .= $char;
-        }
-        return $randString;
+    public function __construct(
+        private string $app_path,
+    ) {
     }
 
     /**
-     * Used in DBExistaroo::applyMigration() as
-     * $path = \Utilities::getSchemaFilePath($this->config->app_path, $versionWithFile);
-     *
-     * @param string $appPath
-     * @param string $versionWithFile
      * @throws \Exception
-     * @return bool|string
      */
-    public static function getSchemaFilePath(string $appPath, string $versionWithFile): string
+    public function resolve(string $versionWithFile): string
     {
         // Sanitize and validate relative path
         if (empty($versionWithFile)) {
@@ -42,10 +30,10 @@ class Utilities
             throw new \Exception("Invalid migration path format: $versionWithFile");
         }
 
-        $fullPath = $appPath . "/db_schemas/" . $versionWithFile;
+        $fullPath = $this->app_path . "/db_schemas/" . $versionWithFile;
 
         // Resolve real paths and check containment
-        $realBase = realpath($appPath . "/db_schemas");
+        $realBase = realpath($this->app_path . "/db_schemas");
         $realTarget = realpath($fullPath);
 
         if (!$realTarget || strpos($realTarget, $realBase) !== 0) {

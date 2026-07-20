@@ -3,7 +3,7 @@
 </div>
 <h1>Welcome to the <?= htmlspecialchars($site_title) ?> Admin Dashboard</h1>
 <p>Registration is <strong><?= $allow_registration ? 'open' : 'closed' ?></strong> to new users.
-   Change <code>$allow_registration</code> in <code>classes/Config.php</code>.</p>
+   Change <code>$allow_registration</code> in <code>classes/Config/Config.php</code>.</p>
 <?php
 if ($has_pending_migrations) {
         echo "<h3>Pending DB Migrations</h3>";

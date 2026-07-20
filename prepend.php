@@ -30,7 +30,7 @@ function print_rob($object, $exit = true)
 }
 
 try {
-    $config = new \Config();
+    $config = new \Config\Config();
 } catch (\Exception $e) {
     echo "Couldn't create Config cause " . $e->getMessage();
     exit;
@@ -41,6 +41,7 @@ $mla_database = \Database\Base::getPDO($config);
 $dbExistaroo = new \Database\DBExistaroo(
     config: $config,
     pdo: $mla_database,
+    schema_path: new \Database\SchemaPath($config->app_path),
 );
 
 $errors = $dbExistaroo->checkaroo();
@@ -67,5 +68,5 @@ if (!empty($errors)) {
     exit;
 }
 
-$is_logged_in = new \Auth\IsLoggedIn($mla_database, $config);
+$is_logged_in = new \Auth\IsLoggedIn($mla_database, $config, new \Auth\RandomToken());
 $is_logged_in->checkLogin($mla_request);

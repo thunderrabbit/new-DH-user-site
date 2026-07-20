@@ -12,10 +12,10 @@ $autoloader = new \Mlaphp\Autoloader();
 spl_autoload_register(array($autoloader, 'load'));
 
 $mla_request = new \Mlaphp\Request();
-$config = new \Config();
+$config = new \Config\Config();
 
 try {
-    $config = new \Config();
+    $config = new \Config\Config();
 } catch (\Exception $e) {
     echo "Couldn't create Config cause " . $e->getMessage();
     exit;
@@ -26,6 +26,7 @@ $mla_database = \Database\Base::getPDO($config);
 $dbExistaroo = new \Database\DBExistaroo(
     config: $config,
     pdo: $mla_database,
+    schema_path: new \Database\SchemaPath($config->app_path),
 );
 
 $creating_admin_user = !$dbExistaroo->firstUserExistBool();
@@ -121,7 +122,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($creating_admin_user) {
             $state = $allow_registration ? "open" : "closed";
             echo "<p>By the way, registration is <strong>{$state}</strong> to new users. "
-               . "Change <code>\$allow_registration</code> in <code>classes/Config.php</code>.</p>";
+               . "Change <code>\$allow_registration</code> in <code>classes/Config/Config.php</code>.</p>";
         }
     } catch (\PDOException $e) {
         if ($e->getCode() == '23000') { // Duplicate key error
@@ -133,7 +134,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     exit;
 } else {
-    $page = new \Template(config: $config);
+    $page = new \View\Template(config: $config);
     $page->setTemplate("login/register.tpl.php");
     $page->set('creating_admin_user', $creating_admin_user);
     $page->set('bootstrap_token_missing', $bootstrap_token_missing);

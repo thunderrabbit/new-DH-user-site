@@ -11,7 +11,7 @@ if ($is_logged_in->isLoggedIn()) {
     exit;
 } else {
     if (!$is_logged_in->isLoggedIn()) {
-        $page = new \Template(config: $config);
+        $page = new \View\Template(config: $config);
         $page->setTemplate("login/index.tpl.php");
         $page->echoToScreen();
         exit;

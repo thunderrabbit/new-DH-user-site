@@ -10,10 +10,10 @@ This is a minimalist PHP web application framework designed for DreamHost deploy
 
 ### Core Components
 
-- **Template System**: `classes/Template.php` - Custom templating engine with layout nesting via `grabTheGoods()` method
+- **Template System**: `classes/View/Template.php` - Custom templating engine with layout nesting via `grabTheGoods()` method
 - **Database Layer**: `classes/Database/` - PDO-based database abstraction with migration system
 - **Authentication**: `classes/Auth/` - Cookie-based login system with IP tracking
-- **Configuration**: Must create `classes/Config.php` from `classes/ConfigSample.php` with actual database credentials
+- **Configuration**: Must create `classes/Config/Config.php` from `classes/Config/ConfigSample.php` with actual database credentials
 - **Bootstrap**: `prepend.php` - Application initialization, autoloader, and database checks
 - **One class per file.** `Mlaphp\Autoloader` maps `\Database\EDuplicateKey` to
   `classes/Database/EDuplicateKey.php`. A second class in a file is unreachable until
@@ -52,7 +52,7 @@ This is a minimalist PHP web application framework designed for DreamHost deploy
 
 ### Initial Setup
 
-1. Copy `classes/ConfigSample.php` to `classes/Config.php` and fill it in. `$domain_name` must
+1. Copy `classes/Config/ConfigSample.php` to `classes/Config/Config.php` and fill it in. `$domain_name` must
    equal the browser's `HTTP_HOST` or `DBExistaroo::domainMatches()` aborts the request.
 2. The database must already exist; the app creates only its own tables (checked by `DBExistaroo`)
 3. First visit applies the `00` and `01` schemas, creating `applied_DB_versions`, `users`, `cookies`

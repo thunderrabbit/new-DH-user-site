@@ -1,5 +1,7 @@
 <?php
 
+namespace View;
+
 class Template
 {
     protected $template_location;
@@ -11,7 +13,7 @@ class Template
     protected $mla_request;
     protected $di_dbase;
 
-    public function __construct(\Config $config)
+    public function __construct(\Config\Config $config)
     {
         $this->template_location = "{$config->app_path}/templates";
 

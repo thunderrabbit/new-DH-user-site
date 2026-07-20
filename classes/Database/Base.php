@@ -9,7 +9,7 @@ class Base
     private static $pdo;
 
     // Modern database access using native PDO interface
-    private static function initDB(\Config $config)
+    private static function initDB(\Config\Config $config)
     {
         /** START - Database **/
         if (empty(self::$pdo)) {
@@ -61,7 +61,7 @@ class Base
         /** END - Database **/
     }
 
-    public static function getPDO(\Config $config): \PDO
+    public static function getPDO(\Config\Config $config): \PDO
     {
         self::initDB($config);
         return self::$pdo;
@@ -70,7 +70,7 @@ class Base
     /**
      * Check if database exists using native PDO
      */
-    public static function databaseExists(\Config $config): bool
+    public static function databaseExists(\Config\Config $config): bool
     {
         try {
             // Connect without database name to check if server is reachable
