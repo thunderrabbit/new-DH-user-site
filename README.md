@@ -11,7 +11,7 @@ and a clean layout system with cookie-based authentication.
 
 - `prepend.php`: Bootstrap. Every page includes it. Registers the autoloader, builds `$config`, connects to the DB, and checks login state.
 - `classes/`: PHP classes, autoloaded by namespace (`\Database\Base` → `classes/Database/Base.php`). **One class per file** — the autoloader cannot find a class whose filename does not match it.
-- `classes/Config.php`: Your site's settings. **Not in the repo.** See *First install*.
+- `classes/Config/Config.php`: Your site's settings. **Not in the repo.** See *First install*.
 - `classes/Template.php`: Rendering engine with string-capture (`grabTheGoods()`) and layout nesting.
 - `templates/`: Your site's UI. Layout wrappers plus content templates (`.tpl.php`).
 - `wwwroot/`: Public web root. Put your pages here (`/admin/index.php`, etc).
@@ -39,7 +39,7 @@ and a clean layout system with cookie-based authentication.
 
 2. **Point the domain's Web Directory at `wwwroot`** in the DreamHost panel:
    e.g. `/home/dh_user/example.com/wwwroot`.
-   Everything above `wwwroot/` — including `classes/Config.php` and the bootstrap
+   Everything above `wwwroot/` — including `classes/Config/Config.php` and the bootstrap
    token — must stay unreachable from the web.
 
 3. **Create the database** in the DreamHost panel, with a user granted on it.
@@ -71,7 +71,7 @@ and a clean layout system with cookie-based authentication.
    symlink, which is owned by `root`. Do not try to remove it, and do not `git clone`
    over the top of it.
 
-5. **Create `classes/Config.php`** from `classes/ConfigSample.php` and fill it in.
+5. **Create `classes/Config/Config.php`** from `classes/Config/ConfigSample.php` and fill it in.
    Nothing runs without this file — `prepend.php` constructs `\Config` on line one of real work.
 
    | Property | Notes |
@@ -107,7 +107,7 @@ and a clean layout system with cookie-based authentication.
 The token gates the **first** account only, and that account is the admin. It is created even when
 registration is closed — otherwise a closed site could never be set up.
 
-Everyone after that is governed by `$allow_registration` in `classes/Config.php`:
+Everyone after that is governed by `$allow_registration` in `classes/Config/Config.php`:
 
 | Value | `/login/register.php` |
 |---|---|

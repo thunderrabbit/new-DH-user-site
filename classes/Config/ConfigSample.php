@@ -1,5 +1,7 @@
 <?php
 
+namespace Config;
+
 class Config
 {
     public $site_title = '';  // shown in <title> and the front-page heading

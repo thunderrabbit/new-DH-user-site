@@ -30,7 +30,7 @@ function print_rob($object, $exit = true)
 }
 
 try {
-    $config = new \Config();
+    $config = new \Config\Config();
 } catch (\Exception $e) {
     echo "Couldn't create Config cause " . $e->getMessage();
     exit;
