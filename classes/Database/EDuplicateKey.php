@@ -1,4 +1,7 @@
 <?php
+
 namespace Database;
 
-class EDuplicateKey extends EDatabaseException {}
+class EDuplicateKey extends EDatabaseException
+{
+}

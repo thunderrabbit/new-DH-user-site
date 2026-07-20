@@ -1,15 +1,18 @@
 <?php
+
 namespace Database;
 
 const CONFIG_DATABASE_OUTPUT_ENCODING = "utf8mb4";
 
-class Base{
+class Base
+{
     private static $pdo;
 
     // Modern database access using native PDO interface
-    private static function initDB(\Config $config){
+    private static function initDB(\Config $config)
+    {
         /** START - Database **/
-        if(empty(self::$pdo)){
+        if (empty(self::$pdo)) {
             $dsn = "mysql:host={$config->dbHost}";
             if (!empty($config->dbName)) {
                 $dsn .= ";dbname={$config->dbName}";
@@ -32,9 +35,8 @@ class Base{
                 $mins = abs($mins);
                 $hrs = floor($mins / 60);
                 $mins -= $hrs * 60;
-                $offset = sprintf('%+d:%02d', $hrs*$sgn, $mins);
+                $offset = sprintf('%+d:%02d', $hrs * $sgn, $mins);
                 self::$pdo->exec("SET time_zone='$offset'");
-
             } catch (\PDOException $e) {
                 // Try once more with a sleep (mimic original behavior)
                 sleep(1);
@@ -47,7 +49,7 @@ class Base{
                     $mins = abs($mins);
                     $hrs = floor($mins / 60);
                     $mins -= $hrs * 60;
-                    $offset = sprintf('%+d:%02d', $hrs*$sgn, $mins);
+                    $offset = sprintf('%+d:%02d', $hrs * $sgn, $mins);
                     self::$pdo->exec("SET time_zone='$offset'");
                 } catch (\PDOException $e2) {
                     throw new \Database\EDatabaseException("Could not connect to server after trying with 1s sleep: " . $e2->getMessage());
@@ -57,7 +59,7 @@ class Base{
         /** END - Database **/
     }
 
-    public static function getPDO(\Config $config) : \PDO
+    public static function getPDO(\Config $config): \PDO
     {
         self::initDB($config);
         return self::$pdo;
@@ -66,7 +68,8 @@ class Base{
     /**
      * Check if database exists using native PDO
      */
-    public static function databaseExists(\Config $config): bool {
+    public static function databaseExists(\Config $config): bool
+    {
         try {
             // Connect without database name to check if server is reachable
             $dsn = "mysql:host={$config->dbHost};charset=" . CONFIG_DATABASE_OUTPUT_ENCODING;
@@ -98,11 +101,14 @@ class Base{
      * Execute multiple SQL statements from a string (for schema migrations)
      * Splits on semicolons and executes each statement separately
      */
-    public static function executeMultipleSQL(\PDO $pdo, string $sql): void {
+    public static function executeMultipleSQL(\PDO $pdo, string $sql): void
+    {
         // Split SQL into individual statements
         $statements = array_filter(
             array_map('trim', explode(';', $sql)),
-            function($stmt) { return !empty($stmt); }
+            function ($stmt) {
+                return !empty($stmt);
+            }
         );
 
         foreach ($statements as $statement) {
@@ -115,5 +121,4 @@ class Base{
             }
         }
     }
-
 }

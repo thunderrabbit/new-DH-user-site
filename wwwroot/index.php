@@ -6,14 +6,14 @@ preg_match('#^(/home/[^/]+/[^/]+)#', __DIR__, $matches);
 include_once $matches[1] . '/prepend.php';
 
 $debugLevel = intval(value: $_GET['debug']) ?? 0;
-if($debugLevel > 0) {
+if ($debugLevel > 0) {
     echo "<pre>Debug Level: $debugLevel</pre>";
 }
 
 # A Config.php written before $site_title existed should still render a page.
 $site_title = $config->site_title ?? 'Site';
 
-if($is_logged_in->isLoggedIn()){
+if ($is_logged_in->isLoggedIn()) {
     // Logged in - show main site homepage
     $page = new \Template(config: $config);
     $page->setTemplate("layout/admin_base.tpl.php");

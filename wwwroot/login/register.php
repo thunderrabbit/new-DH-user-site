@@ -65,12 +65,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // Validate input
     $errors = [];
-    if (empty($username))
+    if (empty($username)) {
         $errors[] = "Username is required.";
-    if (empty($password))
+    }
+    if (empty($password)) {
         $errors[] = "Password is required.";
-    if ($password !== $password_confirm)
+    }
+    if ($password !== $password_confirm) {
         $errors[] = "Passwords do not match.";
+    }
 
     // Bootstrap path: the posted setup token must match the server-side file.
     // hash_equals for a constant-time compare (the token is a credential).
@@ -90,8 +93,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // If errors, redisplay form with errors
     if (!empty($errors)) {
         echo "<h1>Registration Errors</h1><ul>";
-        foreach ($errors as $e)
+        foreach ($errors as $e) {
             echo "<li>" . htmlspecialchars($e) . "</li>";
+        }
         echo "</ul><a href=\"/\">Go back</a>";
         exit;
     }
@@ -127,7 +131,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     exit;
-
 } else {
     $page = new \Template(config: $config);
     $page->setTemplate("login/register.tpl.php");
@@ -136,6 +139,3 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $page->echoToScreen();
     exit;
 }
-
-
-

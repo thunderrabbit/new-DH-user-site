@@ -2,8 +2,8 @@
 
 namespace Database;
 
-class DBExistaroo {
-
+class DBExistaroo
+{
     private $automaticSchemaPrefixes = [
         "00",
         "01",
@@ -21,10 +21,11 @@ class DBExistaroo {
     public function __construct(
         private \Config $config,
         private \PDO $pdo,
-    ){
+    ) {
     }
 
-    public function checkaroo(): array {
+    public function checkaroo(): array
+    {
         $errors = [];
 
         if (!$this->configIsValid()) {
@@ -58,14 +59,16 @@ class DBExistaroo {
         return $errors;
     }
 
-    private function configIsValid(): bool {
+    private function configIsValid(): bool
+    {
         return !empty($this->config->dbHost)
             && !empty($this->config->dbUser)
             && !empty($this->config->dbPass)
             && !empty($this->config->dbName);
     }
 
-    private function domainMatches(): bool {
+    private function domainMatches(): bool
+    {
         $currentDomain = $_SERVER['HTTP_HOST'] ?? '';
         return $currentDomain === $this->config->domain_name;
     }
@@ -76,7 +79,8 @@ class DBExistaroo {
      * We catch EDatabaseMissing if the database is missing.
      * @return bool True if the database exists, false otherwise.
      */
-    private function dbExists(): bool {
+    private function dbExists(): bool
+    {
         try {
             return \Database\Base::databaseExists($this->config);
         } catch (\Database\EDatabaseMissing $e) {
@@ -136,7 +140,8 @@ class DBExistaroo {
         \Database\Base::executeMultipleSQL($this->pdo, $sql);
     }
 
-    private function hasAnyUsers(): bool {
+    private function hasAnyUsers(): bool
+    {
         try {
             $stmt = $this->pdo->prepare("SELECT 1 FROM users LIMIT 1");
             $stmt->execute();
@@ -151,11 +156,13 @@ class DBExistaroo {
         }
     }
 
-    public function firstUserExistBool(): bool {
+    public function firstUserExistBool(): bool
+    {
         return $this->hasAnyUsers();
     }
 
-    public function getPendingMigrations(): array {
+    public function getPendingMigrations(): array
+    {
         $pending = [];
         $applied = $this->getAppliedVersions();
         $base_dir = $this->config->app_path . "/db_schemas";
@@ -183,7 +190,8 @@ class DBExistaroo {
         return $pending;
     }
 
-    private function getAppliedVersions(): array {
+    private function getAppliedVersions(): array
+    {
         $versions = [];
         $stmt = $this->pdo->prepare("SELECT applied_version FROM applied_DB_versions");
         $stmt->execute();
@@ -195,7 +203,8 @@ class DBExistaroo {
         return $versions;
     }
 
-    public function applyMigration(string $versionWithFile): void {
+    public function applyMigration(string $versionWithFile): void
+    {
         $path = \Utilities::getSchemaFilePath($this->config->app_path, $versionWithFile);
 
         $this->applySchemaPath($path);
@@ -212,5 +221,4 @@ class DBExistaroo {
      *
      * Otherwise, we need to parse a log of all the adds, drops, adds, drops, etc which is probably too annoying.
      */
-
 }

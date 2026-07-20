@@ -10,7 +10,7 @@ if ($is_logged_in->isLoggedIn()) {
     header(header: "Location: /");
     exit;
 } else {
-    if(!$is_logged_in->isLoggedIn()){
+    if (!$is_logged_in->isLoggedIn()) {
         $page = new \Template(config: $config);
         $page->setTemplate("login/index.tpl.php");
         $page->echoToScreen();
