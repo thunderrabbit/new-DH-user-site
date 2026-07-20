@@ -26,6 +26,7 @@ $mla_database = \Database\Base::getPDO($config);
 $dbExistaroo = new \Database\DBExistaroo(
     config: $config,
     pdo: $mla_database,
+    schema_path: new \Database\SchemaPath($config->app_path),
 );
 
 $creating_admin_user = !$dbExistaroo->firstUserExistBool();

@@ -4,51 +4,49 @@ namespace Tests\Unit;
 
 use Codeception\Test\Unit;
 
-class UtilitiesTest extends Unit
+class SchemaPathTest extends Unit
 {
-    // === getSchemaFilePath tests ===
-
-    public function testGetSchemaFilePathRejectsEmptyVersion()
+    public function testResolveRejectsEmptyVersion()
     {
         $this->expectException(\Exception::class);
         $this->expectExceptionMessage('cannot be empty');
-        \Utilities::getSchemaFilePath('/some/path', '');
+        (new \Database\SchemaPath('/some/path'))->resolve('');
     }
 
-    public function testGetSchemaFilePathRejectsPathTraversal()
+    public function testResolveRejectsPathTraversal()
     {
         $this->expectException(\Exception::class);
         $this->expectExceptionMessage('traversal not allowed');
-        \Utilities::getSchemaFilePath('/some/path', '../etc/passwd');
+        (new \Database\SchemaPath('/some/path'))->resolve('../etc/passwd');
     }
 
-    public function testGetSchemaFilePathRejectsInvalidFormat()
+    public function testResolveRejectsInvalidFormat()
     {
         $this->expectException(\Exception::class);
         $this->expectExceptionMessage('Invalid migration path format');
-        \Utilities::getSchemaFilePath('/some/path', 'invalid_format.sql');
+        (new \Database\SchemaPath('/some/path'))->resolve('invalid_format.sql');
     }
 
-    public function testGetSchemaFilePathRejectsNoLeadingNumbers()
+    public function testResolveRejectsNoLeadingNumbers()
     {
         $this->expectException(\Exception::class);
         $this->expectExceptionMessage('Invalid migration path format');
-        \Utilities::getSchemaFilePath('/some/path', 'ab_name/create_table.sql');
+        (new \Database\SchemaPath('/some/path'))->resolve('ab_name/create_table.sql');
     }
 
-    public function testGetSchemaFilePathValidFormatButMissingDir()
+    public function testResolveValidFormatButMissingDir()
     {
         // Valid format but base directory doesn't exist
         $this->expectException(\Exception::class);
         $this->expectExceptionMessage('escapes base directory');
-        \Utilities::getSchemaFilePath('/tmp', '00_test/create_users.sql');
+        (new \Database\SchemaPath('/tmp'))->resolve('00_test/create_users.sql');
     }
 
-    public function testGetSchemaFilePathWithRealFile()
+    public function testResolveWithRealFile()
     {
         // Use actual migration file from the project
         $appPath = dirname(__DIR__, 2);  // Go up from Tests/Unit to project root
-        $result = \Utilities::getSchemaFilePath($appPath, '00_bedrock/create_users.sql');
+        $result = (new \Database\SchemaPath($appPath))->resolve('00_bedrock/create_users.sql');
 
         $this->assertStringEndsWith('create_users.sql', $result);
         $this->assertFileExists($result);

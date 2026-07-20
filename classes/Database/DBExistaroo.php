@@ -17,10 +17,12 @@ class DBExistaroo
      *
      * @param \Config $config Configuration object containing DB connection details.
      * @param \PDO $pdo Native PDO database connection.
+     * @param SchemaPath $schema_path Resolves migration files under db_schemas.
      */
     public function __construct(
         private \Config $config,
         private \PDO $pdo,
+        private SchemaPath $schema_path,
     ) {
     }
 
@@ -206,7 +208,7 @@ class DBExistaroo
 
     public function applyMigration(string $versionWithFile): void
     {
-        $path = \Utilities::getSchemaFilePath($this->config->app_path, $versionWithFile);
+        $path = $this->schema_path->resolve($versionWithFile);
 
         $this->applySchemaPath($path);
         $this->logSchemaApplication($versionWithFile, "up");
