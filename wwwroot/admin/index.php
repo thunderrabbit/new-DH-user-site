@@ -9,7 +9,7 @@ include_once $matches[1] . '/prepend.php';
 $site_title = $config->site_title ?? 'Site';
 
 if ($is_logged_in->isLoggedIn() && $is_logged_in->isAdmin()) {
-    $page = new \Template(config: $config);
+    $page = new \View\Template(config: $config);
     $page->setTemplate("admin/index.tpl.php");
     $page->set(name: "site_title", value: $site_title);
     $page->set(name: "site_version", value: SENTIMENTAL_VERSION);
@@ -20,7 +20,7 @@ if ($is_logged_in->isLoggedIn() && $is_logged_in->isAdmin()) {
     $page->set(name: "has_pending_migrations", value: !empty($pending));
     $inner = $page->grabTheGoods();
 
-    $layout = new \Template(config: $config);
+    $layout = new \View\Template(config: $config);
     $layout->setTemplate("layout/admin_base.tpl.php");
     $layout->set("page_title", $site_title . " Admin");
     $layout->set("page_content", $inner);

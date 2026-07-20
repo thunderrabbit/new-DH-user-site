@@ -1,5 +1,7 @@
 <?php
 
+namespace View;
+
 class Template
 {
     protected $template_location;
