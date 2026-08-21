@@ -95,6 +95,7 @@ class IsLoggedIn
     private function setAutoLoginCookie(int $user_id): void
     {
         $cookie = $this->di_token->generate(32);
+        $expires_ts = time() + $this->di_config->cookie_lifetime; // 30 days
 
         $record = [
             'user_id' => $user_id,
@@ -104,20 +105,24 @@ class IsLoggedIn
             // getUserIdForCookieInDatabase).
             'cookie' => hash('sha256', $cookie),
             'last_access' => date(format: "Y-m-d H:i:s"),
+            // Both halves of the expiry come from one timestamp, so the browser
+            // and the database agree on the minute this token dies.
+            'expires_at' => date("Y-m-d H:i:s", $expires_ts),
             'user_agent_md5' => md5($_SERVER['HTTP_USER_AGENT'] ?? ''),
             'ip_address' => \Auth\IPBin::ipToBinary(ip: $_SERVER['REMOTE_ADDR'])
         ];
 
         // Insert using native PDO
         $stmt = $this->di_pdo->prepare(
-            "INSERT INTO `cookies` (`user_id`, `cookie`, `last_access`, `user_agent_md5`, `ip_address`)
-             VALUES (?, ?, ?, ?, ?)"
+            "INSERT INTO `cookies`
+             (`user_id`, `cookie`, `last_access`, `expires_at`, `user_agent_md5`, `ip_address`)
+             VALUES (?, ?, ?, ?, ?, ?)"
         );
         $stmt->execute(array_values($record));
 
         $cookie_options = \Auth\CookieOptions::build(
             $this->di_config->domain_name,
-            time() + $this->di_config->cookie_lifetime // 30 days
+            $expires_ts
         );
         setcookie($this->di_config->cookie_name, $cookie, $cookie_options);
     }
@@ -173,8 +178,12 @@ class IsLoggedIn
     ): int {
         $varbinary_ip = \Auth\IPBin::ipToBinary($ip_address);
         $stmt = $this->di_pdo->prepare(
+            // expires_at is checked here, not left to the browser. A token
+            // copied out of a browser profile or a backup stops working on the
+            // day it was always going to, whatever the client claims.
             "SELECT `user_id` FROM `cookies`
-             WHERE `cookie` = ? AND `ip_address` = ? AND `user_agent_md5` = ? LIMIT 1"
+             WHERE `cookie` = ? AND `ip_address` = ? AND `user_agent_md5` = ?
+               AND `expires_at` > NOW() LIMIT 1"
         );
         $stmt->execute([hash('sha256', $cookie), $varbinary_ip, md5($user_agent)]);
         $result = $stmt->fetchAll();
@@ -198,14 +207,19 @@ class IsLoggedIn
 
     public function logout(): void
     {
-        // Revoke the token server-side, not just in the browser — otherwise a
-        // captured cookie value keeps working for its full lifetime after the
-        // user has "logged out".
-        $presented = $_COOKIE[$this->di_config->cookie_name] ?? '';
-        if ($presented !== '') {
-            $stmt = $this->di_pdo->prepare("DELETE FROM `cookies` WHERE `cookie` = ?");
-            $stmt->execute([hash('sha256', $presented)]);
+        // Nobody is logged in, so there is nothing to revoke and no session of
+        // ours to tear down. checkLogin() has already cleared any cookie that
+        // failed to resolve, so this is a no-op rather than a cleanup pass.
+        if ($this->who_is_logged_in <= 0) {
+            return;
         }
+
+        // Revoke every session this user has, not only the browser that clicked
+        // logout. Someone logging out because they think they were compromised
+        // gets what they asked for, and a token captured from any of their
+        // devices stops working now instead of at its expiry.
+        $stmt = $this->di_pdo->prepare("DELETE FROM `cookies` WHERE `user_id` = ?");
+        $stmt->execute([$this->who_is_logged_in]);
 
         $this->who_is_logged_in = 0;
         $this->killCookie();
