@@ -12,7 +12,11 @@ $autoloader = new \Mlaphp\Autoloader();
 spl_autoload_register(array($autoloader, 'load'));
 
 $mla_request = new \Mlaphp\Request();
-$config = new \Config\Config();
+
+// Same PHP session prepend.php starts, so the CSRF token is shared with the
+// rest of the site. Only the open-registration path below checks it.
+session_start();
+$csrfProtect = new \Security\CSRFProtectaroo($mla_request);
 
 try {
     $config = new \Config\Config();
@@ -66,6 +70,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // Validate input
     $errors = [];
+
+    // CSRF applies to open registration only. The first-admin path is already
+    // gated by the bootstrap token above, which a cross-site page cannot know,
+    // and this page runs without prepend.php so it does its own check.
+    if (!$creating_admin_user && !$csrfProtect->validateRequest()) {
+        $errors[] = "The form's security token was missing or has expired. Reload the page and try again.";
+    }
     if (empty($username)) {
         $errors[] = "Username is required.";
     }
@@ -138,6 +149,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $page->setTemplate("login/register.tpl.php");
     $page->set('creating_admin_user', $creating_admin_user);
     $page->set('bootstrap_token_missing', $bootstrap_token_missing);
+    $page->set('csrf_field', $creating_admin_user ? '' : $csrfProtect->field());
     $page->echoToScreen();
     exit;
 }

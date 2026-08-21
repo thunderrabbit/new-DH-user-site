@@ -14,6 +14,40 @@ $autoloader = new \Mlaphp\Autoloader();
 spl_autoload_register(array($autoloader, 'load'));
 
 $mla_request = new \Mlaphp\Request();
+$csrfProtect = new \Security\CSRFProtectaroo($mla_request);
+
+/**
+ * The hidden CSRF input for any POST form. Templates write <?= csrf_field() ?>
+ * inside the <form>; no page-level set() is needed.
+ */
+function csrf_field(): string
+{
+    global $csrfProtect;
+    return $csrfProtect->field();
+}
+
+/**
+ * The bare token, for fetch() callers that send it as the X-CSRF-Token header
+ * (see templates/admin/migrate_tables.tpl.php). Always json_encode() it into JS.
+ */
+function csrf_token(): string
+{
+    global $csrfProtect;
+    return $csrfProtect->getToken();
+}
+
+// Every state-changing request must carry the session's token. Checked here,
+// before any page code or DB work, so a handler cannot forget it (the first
+// CSRF attempt checked per handler and the login POST slipped through: it is
+// consumed by IsLoggedIn::checkLogin() below, not by a page). A cross-site
+// POST fails because the attacking page cannot read our session's token.
+if (!$csrfProtect->validateRequest()) {
+    http_response_code(403);
+    echo "<h1>Request rejected</h1>"
+        . "<p>The form's security token was missing or has expired. "
+        . "Go back, reload the page, and try again.</p>";
+    exit;
+}
 
 function print_rob($object, $exit = true)
 {

@@ -74,6 +74,24 @@ This is a minimalist PHP web application framework designed for DreamHost deploy
 - IP address tracking via `Auth\IPBin` class
 - Login state managed by `Auth\IsLoggedIn` class
 
+### CSRF
+
+- One token per PHP session (`Security\CSRFProtectaroo`), minted on first use and never
+  consumed, so the back button and a second tab keep working. The first attempt at CSRF
+  (`d557b9f..50c54f6`) used single-use per-form tokens and was killed as overkill; don't
+  bring that back.
+- **Enforced centrally in `prepend.php`**: every POST/PUT/PATCH/DELETE is rejected with 403
+  unless it carries the token, before any page code or DB work runs. A handler does not
+  need to check anything, and cannot forget to.
+- Forms: write `<?= csrf_field() ?>` inside the `<form>`. `fetch()` callers: send the
+  `X-CSRF-Token` header with `csrf_token()` (always `json_encode()` it into JS). See
+  `templates/admin/migrate_tables.tpl.php`.
+- `/login/register.php` skips `prepend.php`, so it starts the session and checks the token
+  itself, and only on the open-registration path. The first-admin path is gated by the
+  bootstrap token instead.
+- The auth cookie is `SameSite=Lax` (see `Auth\CookieOptions`): `Strict` logged out anyone
+  arriving by link from another site. Lax is the backstop; the token is the defence.
+
 ## Important Files
 
 - `prepend.php` - Main application bootstrap (included by all pages)
