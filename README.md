@@ -58,14 +58,23 @@ and a clean layout system with cookie-based authentication.
    it is never web-readable. The site does not create this file and cannot be registered
    without it.
 
-   Now copy the whole tree to the server:
+   Now copy the whole tree to the server — **including `.git`**:
 
    ```bash
-   rsync -a --exclude .git ./ example:/home/dh_user/example.com/
+   rsync -a ./ example:/home/dh_user/example.com/
    ```
 
    where `example` is an ssh `Host` you have defined in `~/.ssh/config`. The token goes up
    with everything else — `rsync` does not read `.gitignore`.
+
+   **Do not `--exclude .git`.** The server gets the full history, so the installed site is a
+   real repo: you can `git log` it, `git diff` a hand-edit made in a panic at 2am, and see
+   at a glance whether the running code matches a commit. A copy without history is a dead
+   tree — the one thing you cannot reconstruct later by re-syncing.
+
+   This costs nothing in exposure: `.git/` lives in the project root, which is **above** the
+   web root, exactly like `classes/` and the token. Verify after the first sync that
+   `https://example.com/.git/config` returns 404.
 
    ⚠️ The target directory may already contain DreamHost's own `.dh-diag → /dh/web/diag`
    symlink, which is owned by `root`. Do not try to remove it, and do not `git clone`

@@ -40,7 +40,9 @@ This is a minimalist PHP web application framework designed for DreamHost deploy
 - `sync_files_to_dh_sample.sh` watches this working copy and copies each **saved file**
   to the server, one at a time. It is **not** a deploy script: it does not sync the tree,
   delete anything, or know about git. The first bulk copy of a new site is a separate,
-  manual `rsync -a --exclude .git`.
+  manual `rsync -a ./ <HOST>:<DEST_PATH>/` — **with `.git`, never `--exclude .git`**. The
+  installed site is meant to be a real repo with its full history; `.git/` sits above the
+  web root, so it is not web-readable.
 - Copy the sample to `sync_files_to_<HOST>.sh`, where `<HOST>` is an ssh `Host` from
   `~/.ssh/config`. Those copies are gitignored, so the username, host, and key path stay
   out of the repo.
