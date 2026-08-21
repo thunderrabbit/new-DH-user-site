@@ -50,7 +50,8 @@
 # 0.7s. (Plain scp is ~0.5s but does neither of the above.)
 #
 # The first copy of a new site is not this script's job. Bulk-copy the tree once
-# (rsync -a --exclude .git), then start the watcher for the edit loop.
+# (rsync -a ./ HOST:DEST/ -- WITH .git, never --exclude it: the installed site is
+# meant to be a real repo), then start the watcher for the edit loop.
 # ---------------------------------------------------------------------------
 
 set -euo pipefail
