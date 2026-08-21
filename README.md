@@ -95,7 +95,7 @@ and a clean layout system with cookie-based authentication.
    It holds a plaintext DB password, so it is gitignored. `chmod 600` it.
 
 6. **Visit `/`.** With no `applied_DB_versions` table, `DBExistaroo` applies the `00` and
-   `01` schemas, creating `applied_DB_versions`, `users`, and `cookies`. With `users`
+   `01` schemas, creating `applied_DB_versions`, `users`, `cookies`, and `login_attempts`. With `users`
    empty, every URL redirects to `/login/register.php`.
 
 7. **Create the first admin.** On `/login/register.php`, paste the token from step 4 along
