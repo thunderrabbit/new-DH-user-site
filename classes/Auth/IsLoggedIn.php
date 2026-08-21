@@ -17,6 +17,7 @@ class IsLoggedIn
         private \PDO $di_pdo,
         private \Config\Config $di_config,
         private RandomToken $di_token,
+        private LoginThrottle $di_throttle,
     ) {
     }
 
@@ -52,18 +53,27 @@ class IsLoggedIn
      * username/pass pair in some other form is just data, and a wrong
      * password can no longer log a user out of an unrelated page.
      *
-     * Returns false with no side effects on failure; the caller shows one
-     * generic message for every failure so a guesser cannot learn which
-     * usernames exist.
+     * BadCredentials has no side effects; the caller shows one generic
+     * message for it so a guesser cannot learn which usernames exist.
      */
-    public function attemptPasswordLogin(string $username, string $password): bool
+    public function attemptPasswordLogin(string $username, string $password): LoginResult
     {
+        $ip_address = $_SERVER['REMOTE_ADDR'] ?? '';
+        if ($this->di_throttle->isThrottled($username, $ip_address)) {
+            // Do not even look at the password: a throttled guess must cost
+            // the attacker nothing in information and us nothing in bcrypt.
+            return LoginResult::Throttled;
+        }
+
         $user_id = $this->checkPHPHashedPassword($username, $password);
         if ($user_id <= 0) {
-            return false;
+            $this->di_throttle->recordFailure($username, $ip_address);
+            return LoginResult::BadCredentials;
         }
+
+        $this->di_throttle->clearFailures($username);
         $this->establishSession($user_id);
-        return true;
+        return LoginResult::Success;
     }
 
     /**
