@@ -105,6 +105,7 @@ $is_logged_in = new \Auth\IsLoggedIn(
     $config,
     new \Auth\RandomToken(),
     new \Auth\LoginThrottle($mla_database),
+    new \Database\CookieRepository($mla_database),
 );
 // Read-only: who does the remember-me cookie say this is? Credentials are
 // checked by /login/index.php alone, never here.
