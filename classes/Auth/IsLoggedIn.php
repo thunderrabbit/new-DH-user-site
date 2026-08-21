@@ -228,6 +228,22 @@ class IsLoggedIn
     }
 
 
+    /**
+     * Sign this user out of every OTHER browser: the remember-me cookie in
+     * hand keeps working, everything else is revoked server-side. Call it
+     * whenever the password changes; a user who suspects a leaked session
+     * has no other remedy. Returns how many sessions were revoked.
+     */
+    public function revokeOtherSessions(): int
+    {
+        if ($this->who_is_logged_in <= 0) {
+            return 0;
+        }
+        $presented = $_COOKIE[$this->di_config->cookie_name] ?? '';
+        $keep = $presented === '' ? null : hash('sha256', $presented);
+        return $this->di_cookies->revokeAllForUser($this->who_is_logged_in, $keep);
+    }
+
     public function logout(): void
     {
         // Nobody is logged in, so there is nothing to revoke and no session of
