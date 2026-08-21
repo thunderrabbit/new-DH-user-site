@@ -17,6 +17,7 @@ class IsLoggedIn
         private \PDO $di_pdo,
         private \Config\Config $di_config,
         private RandomToken $di_token,
+        private LoginThrottle $di_throttle,
     ) {
     }
 
@@ -57,10 +58,20 @@ class IsLoggedIn
      */
     public function attemptPasswordLogin(string $username, string $password): LoginResult
     {
+        $ip_address = $_SERVER['REMOTE_ADDR'] ?? '';
+        if ($this->di_throttle->isThrottled($username, $ip_address)) {
+            // Do not even look at the password: a throttled guess must cost
+            // the attacker nothing in information and us nothing in bcrypt.
+            return LoginResult::Throttled;
+        }
+
         $user_id = $this->checkPHPHashedPassword($username, $password);
         if ($user_id <= 0) {
+            $this->di_throttle->recordFailure($username, $ip_address);
             return LoginResult::BadCredentials;
         }
+
+        $this->di_throttle->clearFailures($username);
         $this->establishSession($user_id);
         return LoginResult::Success;
     }
