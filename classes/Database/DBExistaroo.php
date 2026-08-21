@@ -53,6 +53,8 @@ class DBExistaroo
 
         if (!$this->appliedDBVersionsTableExists()) {
             $this->applyInitialSchemas();
+        } else {
+            $this->applyNewAutomaticSchemas();
         }
 
         if (!$this->hasAnyUsers()) {
@@ -123,6 +125,32 @@ class DBExistaroo
                     $this->applySchemaPath($sql_path);
                     $this->logSchemaApplication($version . '/' . basename($sql_path), "up");
                 }
+            }
+        }
+    }
+
+    /**
+     * A file added to an automatic prefix AFTER a site was deployed used to
+     * sit as "pending" until an admin clicked it, which is a trap when the
+     * code that needs it ships at the same time (login_attempts, the cookies
+     * expires_at column): nobody can log in to click. So on an existing
+     * install, anything still unapplied under 00/01 is applied on the next
+     * request, which is what "automatic" promised all along.
+     *
+     * Sites whose applied_DB_versions rows are bare directory names (logged
+     * before 03b8b46, June 2025) are skipped: every file would look pending
+     * there and CREATE TABLE would fail on every request.
+     */
+    private function applyNewAutomaticSchemas(): void
+    {
+        foreach ($this->getAppliedVersions() as $key) {
+            if (!str_contains($key, '/')) {
+                return;
+            }
+        }
+        foreach ($this->getPendingMigrations() as $key) {
+            if (in_array(substr($key, 0, 2), $this->automaticSchemaPrefixes, true)) {
+                $this->applyMigration($key);
             }
         }
     }
