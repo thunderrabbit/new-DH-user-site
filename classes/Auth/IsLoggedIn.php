@@ -20,32 +20,68 @@ class IsLoggedIn
     ) {
     }
 
+    /**
+     * Transitional wrapper: the old every-request entry point, now expressed
+     * as the two halves below. Goes away once prepend.php and /login/ call
+     * them directly.
+     */
     public function checkLogin(\Mlaphp\Request $mla_request): void
     {
-        $found_user_id = 0;
-        if (!empty($mla_request->cookie[$this->di_config->cookie_name])) {
-            $found_user_id = $this->getUserIdForCookieInDatabase(
-                cookie: $mla_request->cookie[$this->di_config->cookie_name],
-                ip_address: $_SERVER['REMOTE_ADDR'] ?? '',
-                user_agent: $_SERVER['HTTP_USER_AGENT'] ?? ''
-            );
-            if (empty($found_user_id)) {
-                $this->killCookie();
-                $this->who_is_logged_in = 0;
-            } else {
-                $this->who_is_logged_in = $found_user_id;
-            }
-        } elseif (!empty($mla_request->post['username']) && !empty($mla_request->post['pass'])) {
-            $found_user_id = $this->checkPHPHashedPassword($mla_request->post['username'], $mla_request->post['pass']);
-            if (empty($found_user_id)) {
-                $this->killCookie();        // bad login, so kill any cookie
-                $this->who_is_logged_in = 0;
-            } else {
-                $this->establishSession($found_user_id);
-            }
+        $this->resumeFromCookie($mla_request);
+        if ($this->isLoggedIn()) {
+            return;
         }
-        // set the session variable for username
-        $this->setUsernameOfLoggedInID($this->who_is_logged_in);
+        $username = $mla_request->post['username'] ?? '';
+        $password = $mla_request->post['pass'] ?? '';
+        if (is_string($username) && $username !== '' && is_string($password) && $password !== '') {
+            $this->attemptPasswordLogin($username, $password);
+        }
+    }
+
+    /**
+     * Who is this request from? Runs on EVERY request (prepend.php) and is
+     * read-only apart from expiring a cookie the database no longer knows.
+     * It never looks at credentials: that is attemptPasswordLogin()'s job,
+     * and only the login page calls that.
+     */
+    public function resumeFromCookie(\Mlaphp\Request $mla_request): void
+    {
+        $cookie = $mla_request->cookie[$this->di_config->cookie_name] ?? '';
+        if (!is_string($cookie) || $cookie === '') {
+            return;
+        }
+
+        $found_user_id = $this->getUserIdForCookieInDatabase(
+            cookie: $cookie,
+            ip_address: $_SERVER['REMOTE_ADDR'] ?? '',
+            user_agent: $_SERVER['HTTP_USER_AGENT'] ?? ''
+        );
+        if ($found_user_id <= 0) {
+            $this->killCookie();
+            return;
+        }
+
+        $this->who_is_logged_in = $found_user_id;
+        $this->setUsernameOfLoggedInID($found_user_id);
+    }
+
+    /**
+     * Password login. Called by /login/ on POST and nowhere else, so a stray
+     * username/pass pair in some other form is just data, and a wrong
+     * password can no longer log a user out of an unrelated page.
+     *
+     * Returns false with no side effects on failure; the caller shows one
+     * generic message for every failure so a guesser cannot learn which
+     * usernames exist.
+     */
+    public function attemptPasswordLogin(string $username, string $password): bool
+    {
+        $user_id = $this->checkPHPHashedPassword($username, $password);
+        if ($user_id <= 0) {
+            return false;
+        }
+        $this->establishSession($user_id);
+        return true;
     }
 
     /**
