@@ -5,7 +5,8 @@
         fetch('/admin/apply_migration.php', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': <?= json_encode(csrf_token()) ?>
             },
             body: JSON.stringify({ migration: migration })
         })

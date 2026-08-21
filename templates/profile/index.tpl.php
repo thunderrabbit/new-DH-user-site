@@ -14,6 +14,7 @@
     <?php endif; ?>
 
     <form action="/profile/" method="POST" class="mainForm">
+        <?= csrf_field() ?>
         <fieldset>
             <div class="PageRow noborder">
                 <label for="current_password">Current Password:</label>
