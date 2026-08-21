@@ -18,6 +18,7 @@ class IsLoggedIn
         private \Config\Config $di_config,
         private RandomToken $di_token,
         private LoginThrottle $di_throttle,
+        private \Database\CookieRepository $di_cookies,
     ) {
     }
 
@@ -141,28 +142,18 @@ class IsLoggedIn
         $cookie = $this->di_token->generate(32);
         $expires_ts = time() + $this->di_config->cookie_lifetime; // 30 days
 
-        $record = [
-            'user_id' => $user_id,
-            // Store only the SHA-256 of the token: a leaked DB dump/backup must
-            // not contain ready-to-use session tokens. The browser holds the
-            // plaintext; lookups hash the presented value (see
-            // getUserIdForCookieInDatabase).
-            'cookie' => hash('sha256', $cookie),
-            'last_access' => date(format: "Y-m-d H:i:s"),
-            // Both halves of the expiry come from one timestamp, so the browser
-            // and the database agree on the minute this token dies.
-            'expires_at' => date("Y-m-d H:i:s", $expires_ts),
-            'user_agent_md5' => md5($_SERVER['HTTP_USER_AGENT'] ?? ''),
-            'ip_address' => \Auth\IPBin::ipToBinary(ip: $_SERVER['REMOTE_ADDR'])
-        ];
-
-        // Insert using native PDO
-        $stmt = $this->di_pdo->prepare(
-            "INSERT INTO `cookies`
-             (`user_id`, `cookie`, `last_access`, `expires_at`, `user_agent_md5`, `ip_address`)
-             VALUES (?, ?, ?, ?, ?, ?)"
+        // Store only the SHA-256 of the token: a leaked DB dump/backup must
+        // not contain ready-to-use session tokens. The browser holds the
+        // plaintext; lookups hash the presented value (see
+        // getUserIdForCookieInDatabase). The row carries its own expires_at,
+        // so the lifetime is enforced here and not only by the browser.
+        $this->di_cookies->issue(
+            user_id: $user_id,
+            cookie_hash: hash('sha256', $cookie),
+            ip_bin: \Auth\IPBin::ipToBinary($_SERVER['REMOTE_ADDR'] ?? ''),
+            user_agent_md5: md5($_SERVER['HTTP_USER_AGENT'] ?? ''),
+            lifetime_seconds: $this->di_config->cookie_lifetime,
         );
-        $stmt->execute(array_values($record));
 
         $cookie_options = \Auth\CookieOptions::build(
             $this->di_config->domain_name,
@@ -220,23 +211,11 @@ class IsLoggedIn
         string $ip_address,
         string $user_agent
     ): int {
-        $varbinary_ip = \Auth\IPBin::ipToBinary($ip_address);
-        $stmt = $this->di_pdo->prepare(
-            // expires_at is checked here, not left to the browser. A token
-            // copied out of a browser profile or a backup stops working on the
-            // day it was always going to, whatever the client claims.
-            "SELECT `user_id` FROM `cookies`
-             WHERE `cookie` = ? AND `ip_address` = ? AND `user_agent_md5` = ?
-               AND `expires_at` > NOW() LIMIT 1"
+        return $this->di_cookies->findUserId(
+            cookie_hash: hash('sha256', $cookie),
+            ip_bin: \Auth\IPBin::ipToBinary($ip_address),
+            user_agent_md5: md5($user_agent),
         );
-        $stmt->execute([hash('sha256', $cookie), $varbinary_ip, md5($user_agent)]);
-        $result = $stmt->fetchAll();
-
-        if (count($result) > 0) {
-            return $result[0]['user_id'];
-        } else {
-            return 0;
-        }
     }
     public function isLoggedIn(): bool
     {
@@ -249,11 +228,27 @@ class IsLoggedIn
     }
 
 
+    /**
+     * Sign this user out of every OTHER browser: the remember-me cookie in
+     * hand keeps working, everything else is revoked server-side. Call it
+     * whenever the password changes; a user who suspects a leaked session
+     * has no other remedy. Returns how many sessions were revoked.
+     */
+    public function revokeOtherSessions(): int
+    {
+        if ($this->who_is_logged_in <= 0) {
+            return 0;
+        }
+        $presented = $_COOKIE[$this->di_config->cookie_name] ?? '';
+        $keep = $presented === '' ? null : hash('sha256', $presented);
+        return $this->di_cookies->revokeAllForUser($this->who_is_logged_in, $keep);
+    }
+
     public function logout(): void
     {
         // Nobody is logged in, so there is nothing to revoke and no session of
-        // ours to tear down. checkLogin() has already cleared any cookie that
-        // failed to resolve, so this is a no-op rather than a cleanup pass.
+        // ours to tear down. resumeFromCookie() has already cleared any cookie
+        // that failed to resolve, so this is a no-op rather than a cleanup pass.
         if ($this->who_is_logged_in <= 0) {
             return;
         }
@@ -262,8 +257,7 @@ class IsLoggedIn
         // logout. Someone logging out because they think they were compromised
         // gets what they asked for, and a token captured from any of their
         // devices stops working now instead of at its expiry.
-        $stmt = $this->di_pdo->prepare("DELETE FROM `cookies` WHERE `user_id` = ?");
-        $stmt->execute([$this->who_is_logged_in]);
+        $this->di_cookies->revokeAllForUser($this->who_is_logged_in);
 
         $this->who_is_logged_in = 0;
         $this->killCookie();
