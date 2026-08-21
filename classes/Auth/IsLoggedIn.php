@@ -115,12 +115,10 @@ class IsLoggedIn
         );
         $stmt->execute(array_values($record));
 
-        $cookie_options = [
-            'expires' => time() + $this->di_config->cookie_lifetime, // 30 days
-            'path' => '/',
-            'domain' => $this->di_config->domain_name,
-            'samesite' => 'Strict' // None || Lax  || Strict
-        ];
+        $cookie_options = \Auth\CookieOptions::build(
+            $this->di_config->domain_name,
+            time() + $this->di_config->cookie_lifetime // 30 days
+        );
         setcookie($this->di_config->cookie_name, $cookie, $cookie_options);
     }
 
@@ -218,12 +216,10 @@ class IsLoggedIn
 
     private function killCookie(): void
     {
-        $cookie_options = [
-            'expires' => time() - 3600,
-            'path' => '/',
-            'domain' => $this->di_config->domain_name,
-            'samesite' => 'Strict' // None || Lax  || Strict
-        ];
+        $cookie_options = \Auth\CookieOptions::build(
+            $this->di_config->domain_name,
+            time() - 3600
+        );
         setcookie($this->di_config->cookie_name, '', $cookie_options);
         $this->who_is_logged_in = 0;
     }
