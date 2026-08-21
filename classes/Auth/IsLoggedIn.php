@@ -21,24 +21,6 @@ class IsLoggedIn
     }
 
     /**
-     * Transitional wrapper: the old every-request entry point, now expressed
-     * as the two halves below. Goes away once prepend.php and /login/ call
-     * them directly.
-     */
-    public function checkLogin(\Mlaphp\Request $mla_request): void
-    {
-        $this->resumeFromCookie($mla_request);
-        if ($this->isLoggedIn()) {
-            return;
-        }
-        $username = $mla_request->post['username'] ?? '';
-        $password = $mla_request->post['pass'] ?? '';
-        if (is_string($username) && $username !== '' && is_string($password) && $password !== '') {
-            $this->attemptPasswordLogin($username, $password);
-        }
-    }
-
-    /**
      * Who is this request from? Runs on EVERY request (prepend.php) and is
      * read-only apart from expiring a cookie the database no longer knows.
      * It never looks at credentials: that is attemptPasswordLogin()'s job,
