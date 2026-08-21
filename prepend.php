@@ -103,4 +103,6 @@ if (!empty($errors)) {
 }
 
 $is_logged_in = new \Auth\IsLoggedIn($mla_database, $config, new \Auth\RandomToken());
-$is_logged_in->checkLogin($mla_request);
+// Read-only: who does the remember-me cookie say this is? Credentials are
+// checked by /login/index.php alone, never here.
+$is_logged_in->resumeFromCookie($mla_request);
