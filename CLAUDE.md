@@ -128,8 +128,13 @@ This leverages DreamHost's consistent `/home/username/domain.com/` path structur
 
 - Automatic application of schemas with prefixes "00" and "01"
 - Manual migration application via admin interface (`/admin/migrate_tables.php`)
-- Schema files must follow `create_*.sql` naming convention
+- Schema files must contain an underscore and end in `.sql` — `DBExistaroo` globs `*_*.sql`.
+  `create_users.sql` is the usual shape, but `01_alter_users.sql` is equally legal, and a
+  numeric prefix is the only way to order files within a directory: they run alphabetically,
+  so FK targets must sort before the tables that reference them.
 - Each schema directory represents a version (e.g., `00_bedrock/`, `01_gumdrop_cloud/`)
+- Each **file** is tracked separately in `applied_DB_versions` as `<dir>/<filename>`. Renaming
+  an already-applied file re-runs it, because that path string is the key.
 
 ## Common Development Tasks
 
