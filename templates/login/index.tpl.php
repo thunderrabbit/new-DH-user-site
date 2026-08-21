@@ -12,6 +12,11 @@
         <div class="PageWrapper">
             <div class="PagePanel">
                 <div class="head"><h5 class="iUser">Login</h5></div>
+                <?php if (!empty($login_error)): ?>
+                <div class="error-message" style="color: red; padding: 10px; margin: 10px 0; border: 1px solid red; background-color: #ffe8e8;">
+                    <?= htmlspecialchars($login_error) ?>
+                </div>
+                <?php endif; ?>
                 <form action="" id="valid" class="mainForm" method="POST">
                     <?= csrf_field() ?>
                     <fieldset>
