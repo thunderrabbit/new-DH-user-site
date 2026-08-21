@@ -59,6 +59,10 @@ class IsLoggedIn
         // Fresh privilege level → fresh session id (fixation guard): a
         // pre-set session id must not survive the authentication boundary.
         session_regenerate_id(true);
+        // regenerate_id keeps the session data, so a CSRF token minted (or
+        // fixated) before login would survive it. Drop it; the next page
+        // render mints a fresh one.
+        unset($_SESSION[\Security\CSRFProtectaroo::FIELD]);
         $this->setAutoLoginCookie($user_id);
         $this->who_is_logged_in = $user_id;
         $this->setUsernameOfLoggedInID($user_id);
