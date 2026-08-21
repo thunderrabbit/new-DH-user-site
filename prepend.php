@@ -1,6 +1,6 @@
 <?php
 
-const SENTIMENTAL_VERSION = "CSRF, attempt two";
+const SENTIMENTAL_VERSION = "One door in";
 
 # write errors to screen
 ini_set('display_errors', 1);
