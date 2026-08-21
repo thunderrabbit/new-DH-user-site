@@ -117,7 +117,10 @@ class DBExistaroo
 
             foreach ($schema_dirs as $schema_dir) {
                 $version = basename($schema_dir);
-                $sql_files = glob("$schema_dir/*_*.sql");
+                // The automatic prefixes bring a database into existence, so every
+                // file here is a CREATE TABLE. Later migrations are the ones that
+                // ALTER, and they are named freely - see SchemaPath::resolve().
+                $sql_files = glob("$schema_dir/create_*.sql");
 
                 foreach ($sql_files as $sql_path) {
                     $this->applySchemaPath($sql_path);

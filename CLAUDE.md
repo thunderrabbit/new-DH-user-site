@@ -128,13 +128,16 @@ This leverages DreamHost's consistent `/home/username/domain.com/` path structur
 
 - Automatic application of schemas with prefixes "00" and "01"
 - Manual migration application via admin interface (`/admin/migrate_tables.php`)
-- Schema files must be named `create_*.sql`. Two different checks disagree, and the strict
-  one wins: `DBExistaroo::applyInitialSchemas()` globs `*_*.sql`, but that path only runs for
-  the auto-applied `00`/`01`. Everything else goes through `applyMigration()` →
-  `Utilities::getSchemaFilePath()`, whose regex demands `^[0-9]{2}_.../create_....sql$`.
-  That regex is also the path-traversal guard on a JSON POST body, so do not widen it casually.
+- **Initial schemas must be named `create_*.sql`.** The auto-applied prefixes (`00`, `01`)
+  bring the database into existence, so every file in them is a `CREATE TABLE`;
+  `applyInitialSchemas()` globs for exactly that.
+- **Later migrations are named freely** — they ALTER as often as they create.
+  `Database\SchemaPath::resolve()` checks the path *shape* only
+  (`^[0-9]{2}_[a-zA-Z0-9_-]+/[a-zA-Z0-9_-]+\.sql$`). It is a traversal guard on a string
+  arriving in a JSON POST body, not a naming convention: keep the anchors and the dot-free
+  character class, and don't read it as a rule about verbs.
 - Files within a directory run alphabetically, so FK targets must sort before the tables that
-  reference them. Order with a number *after* the required prefix: `create_01_alter_users.sql`.
+  reference them. Order with a numeric prefix: `01_alter_users.sql`, `02_create_user_emails.sql`.
 - Each schema directory represents a version (e.g., `00_bedrock/`, `01_gumdrop_cloud/`)
 - Each **file** is tracked separately in `applied_DB_versions` as `<dir>/<filename>`. Renaming
   an already-applied file re-runs it, because that path string is the key.

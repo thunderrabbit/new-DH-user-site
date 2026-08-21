@@ -26,7 +26,12 @@ class SchemaPath
         if (strpos($versionWithFile, '..') !== false) {
             throw new \Exception("Invalid migration path (traversal not allowed): $versionWithFile");
         }
-        if (!preg_match('#^[0-9]{2}_[a-zA-Z0-9_-]+/create_[a-zA-Z0-9_-]+\.sql$#', $versionWithFile)) {
+        // Shape only, deliberately not `create_`: a migration may ALTER an existing
+        // table as readily as create a new one. This is a traversal guard on a string
+        // that arrives in a JSON POST body, not a naming convention - the anchors and
+        // the dot-free character class are what matter. Initial schemas are the ones
+        // held to `create_*.sql`, in DBExistaroo::applyInitialSchemas().
+        if (!preg_match('#^[0-9]{2}_[a-zA-Z0-9_-]+/[a-zA-Z0-9_-]+\.sql$#', $versionWithFile)) {
             throw new \Exception("Invalid migration path format: $versionWithFile");
         }
 
