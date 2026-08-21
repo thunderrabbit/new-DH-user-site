@@ -87,8 +87,11 @@ This is a minimalist PHP web application framework designed for DreamHost deploy
     `Throttled`). `Auth\LoginThrottle` counts failures in `login_attempts`: 5 per username or
     20 per IP inside 15 minutes and the password is not even checked. A success clears that
     username's count. A missing `login_attempts` table (site deployed before the migration)
-    means no throttle, not no login; apply `01_gumdrop_cloud/create_login_attempts.sql` from
-    `/admin/migrate_tables.php`.
+    means no throttle, not no login.
+  - Remember-me cookies live in `cookies` via `Database\CookieRepository`. Each row has an
+    `expires_at` the lookup honours (the browser's expiry is not trusted), and issuing a cookie
+    purges expired rows. `IsLoggedIn::revokeOtherSessions()` signs the user out everywhere but
+    the current browser; **every password-change path must call it** (`/profile/` does).
 
 ### CSRF
 
@@ -140,7 +143,10 @@ This leverages DreamHost's consistent `/home/username/domain.com/` path structur
 
 ## Database Schema Management
 
-- Automatic application of schemas with prefixes "00" and "01"
+- Automatic application of schemas with prefixes "00" and "01". Since `e8b3b26` that is true
+  on existing installs too: a file added to `00`/`01` later is applied on the next request,
+  so code and its schema can ship together without an admin having to log in first. The
+  admin dashboard is for `02` onward.
 - Manual migration application via admin interface (`/admin/migrate_tables.php`)
 - **Initial schemas must be named `create_*.sql`.** The auto-applied prefixes (`00`, `01`)
   bring the database into existence, so every file in them is a `CREATE TABLE`;
