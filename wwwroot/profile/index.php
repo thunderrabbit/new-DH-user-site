@@ -45,7 +45,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $result = $passwordRepository->changePassword($user_id, $current_password, $new_password);
 
             if ($result['success']) {
+                // A password change is the one remedy for a leaked session, so
+                // it must cut every other session loose. This browser stays in.
+                $revoked = $is_logged_in->revokeOtherSessions();
                 $success_message = $result['message'];
+                if ($revoked > 0) {
+                    $success_message .= " Signed out {$revoked} other "
+                        . ($revoked === 1 ? "session" : "sessions") . ".";
+                }
             } else {
                 $errors[] = $result['message'];
             }

@@ -86,7 +86,8 @@ and a clean layout system with cookie-based authentication.
    It holds a plaintext DB password, so it is gitignored. `chmod 600` it.
 
 6. **Visit `/`.** With no `applied_DB_versions` table, `DBExistaroo` applies the `00` and
-   `01` schemas, creating `applied_DB_versions`, `users`, `cookies`, and `login_attempts`. With `users`
+   `01` schemas, creating `applied_DB_versions`, `users`, `cookies` (with server-side expiry), and
+   `login_attempts`. With `users`
    empty, every URL redirects to `/login/register.php`.
 
 7. **Create the first admin.** On `/login/register.php`, paste the token from step 4 along
@@ -166,8 +167,9 @@ Then see `wwwroot/admin/index.php` with `templates/admin/index.tpl.php` and
 ## 🗄️ Database migrations
 
 Add a numbered directory under `db_schemas/` (e.g. `02_widgets/`) holding `create_*.sql`
-files. Prefixes `00` and `01` are applied automatically on a fresh install; everything after
-is applied by an admin from `/admin/migrate_tables.php`. Applied versions are recorded in
+files. Prefixes `00` and `01` are applied automatically, on a fresh install and on the next
+request of an existing one; everything after is applied by an admin from
+`/admin/migrate_tables.php`. Applied versions are recorded in
 `applied_DB_versions`. There is no automated rollback — undo by hand in phpMyAdmin.
 
 ---
