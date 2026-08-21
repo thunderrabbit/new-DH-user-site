@@ -52,18 +52,17 @@ class IsLoggedIn
      * username/pass pair in some other form is just data, and a wrong
      * password can no longer log a user out of an unrelated page.
      *
-     * Returns false with no side effects on failure; the caller shows one
-     * generic message for every failure so a guesser cannot learn which
-     * usernames exist.
+     * BadCredentials has no side effects; the caller shows one generic
+     * message for it so a guesser cannot learn which usernames exist.
      */
-    public function attemptPasswordLogin(string $username, string $password): bool
+    public function attemptPasswordLogin(string $username, string $password): LoginResult
     {
         $user_id = $this->checkPHPHashedPassword($username, $password);
         if ($user_id <= 0) {
-            return false;
+            return LoginResult::BadCredentials;
         }
         $this->establishSession($user_id);
-        return true;
+        return LoginResult::Success;
     }
 
     /**

@@ -18,17 +18,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $username = $mla_request->post['username'] ?? '';
     $password = $mla_request->post['pass'] ?? '';
 
-    if (
-        is_string($username) && trim($username) !== ''
-        && is_string($password) && $password !== ''
-        && $is_logged_in->attemptPasswordLogin(trim($username), $password)
-    ) {
+    $result = \Auth\LoginResult::BadCredentials;
+    if (is_string($username) && trim($username) !== '' && is_string($password) && $password !== '') {
+        $result = $is_logged_in->attemptPasswordLogin(trim($username), $password);
+    }
+
+    if ($result === \Auth\LoginResult::Success) {
         header(header: "Location: /");
         exit;
     }
-    // One message for every failure. Saying which half was wrong tells a
-    // guesser which usernames exist.
-    $login_error = "Username or password incorrect.";
+    // One message for every bad credential. Saying which half was wrong tells
+    // a guesser which usernames exist. Throttling is the one thing worth
+    // naming, so a real user knows waiting will help and retyping will not.
+    $login_error = match ($result) {
+        \Auth\LoginResult::Throttled => "Too many failed logins. Wait "
+            . intdiv(\Auth\LoginThrottle::WINDOW_SECONDS, 60) . " minutes and try again.",
+        default => "Username or password incorrect.",
+    };
 }
 
 $page = new \View\Template(config: $config);
