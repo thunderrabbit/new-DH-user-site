@@ -83,6 +83,12 @@ This is a minimalist PHP web application framework designed for DreamHost deploy
     CSRF token, issue the remember-me cookie, record the user). **Any new way in — emailed
     sign-in links, OAuth — must call `establishSession()` and nothing else.**
   - Login failures get one generic message; naming which half was wrong enumerates usernames.
+  - `attemptPasswordLogin()` returns `Auth\LoginResult` (`Success`, `BadCredentials`,
+    `Throttled`). `Auth\LoginThrottle` counts failures in `login_attempts`: 5 per username or
+    20 per IP inside 15 minutes and the password is not even checked. A success clears that
+    username's count. A missing `login_attempts` table (site deployed before the migration)
+    means no throttle, not no login; apply `01_gumdrop_cloud/create_login_attempts.sql` from
+    `/admin/migrate_tables.php`.
 
 ### CSRF
 
@@ -198,7 +204,9 @@ Both must pass (or the change is not commit-ready). Setup and fixing:
   (pending manual cleanup). `templates/*.tpl.php` are out of scope.
 - Unit tests live in `Tests/Unit/`; the suite bootstraps its own autoloader and
   must stay DB-free and session-free (see `Tests/Unit/_bootstrap.php`). A test
-  that needs a live DB or endpoint does not belong in the Unit suite.
+  that needs a live DB or endpoint does not belong in the Unit suite. An
+  in-memory SQLite (`LoginThrottleTest`) is fine: no server, no credentials, gone
+  with the process. Classes that want that coverage keep their SQL portable.
 
 ## Error Handling and Debugging
 
