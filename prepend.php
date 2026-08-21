@@ -36,6 +36,19 @@ function csrf_token(): string
     return $csrfProtect->getToken();
 }
 
+// Every state-changing request must carry the session's token. Checked here,
+// before any page code or DB work, so a handler cannot forget it (the first
+// CSRF attempt checked per handler and the login POST slipped through: it is
+// consumed by IsLoggedIn::checkLogin() below, not by a page). A cross-site
+// POST fails because the attacking page cannot read our session's token.
+if (!$csrfProtect->validateRequest()) {
+    http_response_code(403);
+    echo "<h1>Request rejected</h1>"
+        . "<p>The form's security token was missing or has expired. "
+        . "Go back, reload the page, and try again.</p>";
+    exit;
+}
+
 function print_rob($object, $exit = true)
 {
     echo "<pre>";
