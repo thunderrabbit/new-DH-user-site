@@ -41,15 +41,27 @@ class IsLoggedIn
                 $this->killCookie();        // bad login, so kill any cookie
                 $this->who_is_logged_in = 0;
             } else {
-                // Fresh privilege level → fresh session id (fixation guard): a
-                // pre-set session id must not survive the authentication boundary.
-                session_regenerate_id(true);
-                $this->setAutoLoginCookie($found_user_id);
-                $this->who_is_logged_in = $found_user_id;
+                $this->establishSession($found_user_id);
             }
         }
         // set the session variable for username
         $this->setUsernameOfLoggedInID($this->who_is_logged_in);
+    }
+
+    /**
+     * The one way to become logged in. EVERY authentication path (password
+     * today; emailed sign-in links, OAuth, whatever comes next) must end by
+     * calling this and nothing else, so no path can skip the fixation guard
+     * or end up with different persistence from the others.
+     */
+    private function establishSession(int $user_id): void
+    {
+        // Fresh privilege level → fresh session id (fixation guard): a
+        // pre-set session id must not survive the authentication boundary.
+        session_regenerate_id(true);
+        $this->setAutoLoginCookie($user_id);
+        $this->who_is_logged_in = $user_id;
+        $this->setUsernameOfLoggedInID($user_id);
     }
 
     private function setUsernameOfLoggedInID(int $user_id): void
