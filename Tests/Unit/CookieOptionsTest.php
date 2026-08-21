@@ -13,10 +13,10 @@ class CookieOptionsTest extends Unit
         $this->assertTrue($options['httponly'], 'cookie must be unreadable from document.cookie');
     }
 
-    public function testSameSiteIsStrict()
+    public function testSameSiteIsLaxSoInboundLinksStayLoggedIn()
     {
         $options = \Auth\CookieOptions::build('example.com', 1234567890);
-        $this->assertEquals('Strict', $options['samesite']);
+        $this->assertEquals('Lax', $options['samesite'], 'Strict drops the cookie on links from other sites');
     }
 
     public function testExpiresAndDomainArePassedThrough()
