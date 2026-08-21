@@ -37,9 +37,7 @@ function csrf_token(): string
 }
 
 // Every state-changing request must carry the session's token. Checked here,
-// before any page code or DB work, so a handler cannot forget it (the first
-// CSRF attempt checked per handler and the login POST slipped through: it is
-// consumed by IsLoggedIn::checkLogin() below, not by a page). A cross-site
+// before any page code or DB work, so a handler cannot forget it. A cross-site
 // POST fails because the attacking page cannot read our session's token.
 if (!$csrfProtect->validateRequest()) {
     http_response_code(403);
@@ -103,4 +101,6 @@ if (!empty($errors)) {
 }
 
 $is_logged_in = new \Auth\IsLoggedIn($mla_database, $config, new \Auth\RandomToken());
-$is_logged_in->checkLogin($mla_request);
+// Read-only: who does the remember-me cookie say this is? Credentials are
+// checked by /login/index.php alone, never here.
+$is_logged_in->resumeFromCookie($mla_request);

@@ -72,7 +72,15 @@ This is a minimalist PHP web application framework designed for DreamHost deploy
   return 403 on GET and POST. Read it as `?? true` so a `Config.php` predating the property keeps its
   old behaviour instead of locking a live site's users out.
 - IP address tracking via `Auth\IPBin` class
-- Login state managed by `Auth\IsLoggedIn` class
+- Login state managed by `Auth\IsLoggedIn`, in two halves that must stay apart:
+  - `resumeFromCookie()` runs on every request from `prepend.php`. Read-only apart from
+    expiring a cookie the DB no longer knows; it never looks at credentials.
+  - `attemptPasswordLogin()` is called by `/login/index.php` on POST and nowhere else. A
+    `username`/`pass` pair in any other form is just data.
+  - Both end in the private `establishSession()` funnel (regenerate session id, drop the
+    CSRF token, issue the remember-me cookie, record the user). **Any new way in — emailed
+    sign-in links, OAuth — must call `establishSession()` and nothing else.**
+  - Login failures get one generic message; naming which half was wrong enumerates usernames.
 
 ### CSRF
 
