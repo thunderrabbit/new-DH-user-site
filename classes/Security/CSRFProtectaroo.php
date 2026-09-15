@@ -92,7 +92,8 @@ class CSRFProtectaroo
      */
     public function validateRequest(): bool
     {
-        $method = strtoupper((string) ($this->request->server['REQUEST_METHOD'] ?? 'GET'));
+        $method = $this->request->server['REQUEST_METHOD'] ?? 'GET';
+        $method = is_string($method) ? strtoupper($method) : '';
         if (in_array($method, self::SAFE_METHODS, true)) {
             return true;
         }
