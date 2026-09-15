@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Database;
 
 const CONFIG_DATABASE_OUTPUT_ENCODING = "utf8mb4";

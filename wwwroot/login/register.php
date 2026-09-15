@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 // This is only run if users table is empty
 // We do *not* include prepend.php because
 // it would cause a circular dependency

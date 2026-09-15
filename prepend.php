@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 const SENTIMENTAL_VERSION = "Style at the door";
 
 # write errors to screen

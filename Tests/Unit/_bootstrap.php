@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 // Unit test bootstrap - load project classes without prepend.php
 // (prepend.php starts a session and connects to the DB; unit tests must not)
 
