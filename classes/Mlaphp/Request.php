@@ -28,6 +28,8 @@ use InvalidArgumentException;
  * when using Request81 as vs. the original Request.
  *
  * @package mlaphp/mlaphp
+ *
+ * @property array $session A reference to $_SESSION; see __get().
  */
 class Request
 {
@@ -85,49 +87,19 @@ class Request
      */
     public function __construct()
     {
-        // mention the superglobals by name to invoke auto_globals_jit, thereby
-        // forcing them to be populated; cf. <http://php.net/auto-globals-jit>.
-        $_COOKIE;
-        $_ENV;
-        $_FILES;
-        $_GET;
-        $_POST;
-        $_REQUEST;
-        $_SERVER;
-
-        if (isset($_COOKIE)) {
-            $this->cookie = $_COOKIE;
-        }
-
-        if (isset($_ENV)) {
-            $this->env = $_ENV;
-        }
-
-        if (isset($_FILES)) {
-            $this->files = $_FILES;
-        }
-
-        if (isset($_GET)) {
-            $this->get = $_GET;
-        }
-
-        if (isset($_POST)) {
-            $this->post = $_POST;
-        }
-
-        if (isset($_REQUEST)) {
-            $this->request = $_REQUEST;
-        }
-
-        if (isset($_SERVER)) {
-            $this->server = $_SERVER;
-        }
+        $this->cookie = $_COOKIE;
+        $this->env = $_ENV;
+        $this->files = $_FILES;
+        $this->get = $_GET;
+        $this->post = $_POST;
+        $this->request = $_REQUEST;
+        $this->server = $_SERVER;
     }
 
     /**
      * Provides a magic **reference** to $_SESSION.
      *
-     * @param string $property The property name; must be 'session'.
+     * @param string $name The property name; must be 'session'.
      * @return array A reference to $_SESSION.
      * @throws InvalidArgumentException for any $name other than 'session'.
      * @throws DomainException when $_SESSION is not set.
