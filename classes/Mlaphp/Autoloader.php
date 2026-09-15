@@ -16,7 +16,7 @@ namespace Mlaphp;
 
 class Autoloader
 {
-    public function load($class)
+    public function load(string $class): void
     {
         // strip off any leading namespace separator from PHP 5.3
         $class = ltrim($class, '\\');
