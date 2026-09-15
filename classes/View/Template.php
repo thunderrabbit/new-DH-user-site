@@ -4,34 +4,27 @@ namespace View;
 
 class Template
 {
-    protected $template_location;
+    private string $template_dir;
 
-    protected $vars;
+    private ?string $template_file = null;
 
-    // Encapsulates superglobals e.g. $SESSION, $REQUEST, etc
-    // (misspelled in this comment to keep searches clean)
-    protected $mla_request;
-    protected $di_dbase;
+    /** @var array<string, mixed> */
+    private array $vars = [];
 
     public function __construct(\Config\Config $config)
     {
-        $this->template_location = "{$config->app_path}/templates";
-
-        $this->vars = [];
+        $this->template_dir = "{$config->app_path}/templates";
     }
 
-    public function setTemplate($template_file)
+    public function setTemplate(string $template_file): void
     {
-        $this->template_location = $this->template_location . "/" . $template_file;
+        $this->template_file = $template_file;
     }
 
     /**
-     * Summary of set
-     * @param string $name
      * @param mixed $value mixed so array of file names can be passed in /list/index.php
-     * @return void
      */
-    public function set(string $name, mixed $value)
+    public function set(string $name, mixed $value): void
     {
         $this->vars[$name] = $value;
     }
@@ -56,22 +49,20 @@ class Template
 
     protected function loadTemplate(): string
     {
+        if ($this->template_file === null) {
+            return "No template file provided";
+        }
+        $template_path = $this->template_dir . "/" . $this->template_file;
+
         $charEncode = "UTF-8";
         extract($this->vars);           // Extract the vars to local namespace
 
         ob_start();                     // Start output buffering
-
-        if (!isset($this->template_location)) {
-            echo "No template file provided";
-        }
-
-        include($this->template_location);  // Include the file
-
+        include($template_path);        // Include the file
         $ob_result = ob_get_clean();
 
-        // if $ob_result is false, return an error message
-        if (empty($ob_result)) {
-            return "Error loading template: {$this->template_location}";
+        if ($ob_result === false || $ob_result === '') {
+            return "Error loading template: {$template_path}";
         }
 
         return $ob_result;
