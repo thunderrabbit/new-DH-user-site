@@ -4,11 +4,8 @@ namespace Database;
 
 class PasswordRepository
 {
-    private $pdo;
-
-    public function __construct(\PDO $pdo)
+    public function __construct(private \PDO $pdo)
     {
-        $this->pdo = $pdo;
     }
 
     /**
@@ -21,13 +18,9 @@ class PasswordRepository
     {
         $stmt = $this->pdo->prepare("SELECT `password_hash` FROM `users` WHERE `user_id` = ? LIMIT 1");
         $stmt->execute([$user_id]);
-        $result = $stmt->fetchAll();
+        $hash = $stmt->fetchColumn();
 
-        if (count($result) > 0) {
-            return $result[0]['password_hash'];
-        }
-
-        return null;
+        return is_string($hash) ? $hash : null;
     }
 
     /**
@@ -69,7 +62,7 @@ class PasswordRepository
      * @param int $user_id
      * @param string $current_password
      * @param string $new_password
-     * @return array Returns array with 'success' boolean and 'message' string
+     * @return array{success: bool, message: string}
      */
     public function changePassword(int $user_id, string $current_password, string $new_password): array
     {
