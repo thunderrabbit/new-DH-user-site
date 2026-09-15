@@ -11,7 +11,7 @@ use Codeception\Test\Unit;
  */
 class CSRFProtectarooTest extends Unit
 {
-    protected function _before()
+    protected function _before(): void
     {
         $_SESSION = [];
         $_POST = [];
@@ -19,7 +19,7 @@ class CSRFProtectarooTest extends Unit
         unset($_SERVER['HTTP_X_CSRF_TOKEN']);
     }
 
-    protected function _after()
+    protected function _after(): void
     {
         unset($_SESSION, $_SERVER['REQUEST_METHOD'], $_SERVER['HTTP_X_CSRF_TOKEN']);
         $_POST = [];
@@ -30,7 +30,7 @@ class CSRFProtectarooTest extends Unit
         return new \Security\CSRFProtectaroo(new \Mlaphp\Request());
     }
 
-    public function testTokenIsMintedOnceAndStoredInTheSession()
+    public function testTokenIsMintedOnceAndStoredInTheSession(): void
     {
         $csrf = $this->newCsrf();
         $first = $csrf->getToken();
@@ -39,7 +39,7 @@ class CSRFProtectarooTest extends Unit
         $this->assertSame($first, $_SESSION['csrf_token']);
     }
 
-    public function testTokenSurvivesValidation()
+    public function testTokenSurvivesValidation(): void
     {
         $csrf = $this->newCsrf();
         $token = $csrf->getToken();
@@ -47,7 +47,7 @@ class CSRFProtectarooTest extends Unit
         $this->assertTrue($csrf->validateToken($token), 'not single-use: a second tab must still work');
     }
 
-    public function testWrongMissingOrEmptyTokenIsRejected()
+    public function testWrongMissingOrEmptyTokenIsRejected(): void
     {
         $csrf = $this->newCsrf();
         $csrf->getToken();
@@ -56,14 +56,14 @@ class CSRFProtectarooTest extends Unit
         $this->assertFalse($csrf->validateToken(''));
     }
 
-    public function testSessionWithoutTokenFailsClosed()
+    public function testSessionWithoutTokenFailsClosed(): void
     {
         $csrf = $this->newCsrf();
         $this->assertFalse($csrf->validateToken(''), 'empty must not equal empty');
         $this->assertFalse($csrf->validateToken('anything'));
     }
 
-    public function testNoSessionThrowsInsteadOfSilentlySkipping()
+    public function testNoSessionThrowsInsteadOfSilentlySkipping(): void
     {
         unset($_SESSION);
         $csrf = $this->newCsrf();
@@ -71,7 +71,7 @@ class CSRFProtectarooTest extends Unit
         $csrf->getToken();
     }
 
-    public function testSubmittedTokenPrefersPostFieldThenHeader()
+    public function testSubmittedTokenPrefersPostFieldThenHeader(): void
     {
         $_POST['csrf_token'] = 'from-post';
         $_SERVER['HTTP_X_CSRF_TOKEN'] = 'from-header';
@@ -84,7 +84,7 @@ class CSRFProtectarooTest extends Unit
         $this->assertNull($this->newCsrf()->submittedToken());
     }
 
-    public function testArrayInPostFieldIsTreatedAsAbsent()
+    public function testArrayInPostFieldIsTreatedAsAbsent(): void
     {
         $_POST['csrf_token'] = ['x'];
         $csrf = $this->newCsrf();
@@ -92,7 +92,7 @@ class CSRFProtectarooTest extends Unit
         $this->assertFalse($csrf->validateToken($csrf->submittedToken()));
     }
 
-    public function testSafeMethodsNeedNoToken()
+    public function testSafeMethodsNeedNoToken(): void
     {
         foreach (['GET', 'HEAD', 'OPTIONS', 'get'] as $method) {
             $_SERVER['REQUEST_METHOD'] = $method;
@@ -100,7 +100,7 @@ class CSRFProtectarooTest extends Unit
         }
     }
 
-    public function testUnsafeMethodsNeedTheSessionToken()
+    public function testUnsafeMethodsNeedTheSessionToken(): void
     {
         $token = $this->newCsrf()->getToken();
         foreach (['POST', 'PUT', 'PATCH', 'DELETE'] as $method) {
@@ -113,7 +113,7 @@ class CSRFProtectarooTest extends Unit
         }
     }
 
-    public function testFetchCallersCanUseTheHeader()
+    public function testFetchCallersCanUseTheHeader(): void
     {
         $token = $this->newCsrf()->getToken();
         $_SERVER['REQUEST_METHOD'] = 'POST';
@@ -121,7 +121,7 @@ class CSRFProtectarooTest extends Unit
         $this->assertTrue($this->newCsrf()->validateRequest());
     }
 
-    public function testFieldIsAHiddenInputCarryingTheToken()
+    public function testFieldIsAHiddenInputCarryingTheToken(): void
     {
         $csrf = $this->newCsrf();
         $field = $csrf->field();
