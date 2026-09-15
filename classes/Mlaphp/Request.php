@@ -29,58 +29,58 @@ use InvalidArgumentException;
  *
  * @package mlaphp/mlaphp
  *
- * @property array $session A reference to $_SESSION; see __get().
+ * @property array<mixed> $session A reference to $_SESSION; see __get().
  */
 class Request
 {
     /**
      * A copy of $_COOKIE.
      *
-     * @var array
+     * @var array<mixed>
      */
-    public $cookie = array();
+    public array $cookie = [];
 
     /**
      * A copy of $_ENV.
      *
-     * @var array
+     * @var array<mixed>
      */
-    public $env = array();
+    public array $env = [];
 
     /**
      * A copy of $_FILES.
      *
-     * @var array
+     * @var array<mixed>
      */
-    public $files = array();
+    public array $files = [];
 
     /**
      * A copy of $_GET.
      *
-     * @var array
+     * @var array<mixed>
      */
-    public $get = array();
+    public array $get = [];
 
     /**
      * A copy of $_POST.
      *
-     * @var array
+     * @var array<mixed>
      */
-    public $post = array();
+    public array $post = [];
 
     /**
      * A copy of $_REQUEST.
      *
-     * @var array
+     * @var array<mixed>
      */
-    public $request = array();
+    public array $request = [];
 
     /**
      * A copy of $_SERVER.
      *
-     * @var array
+     * @var array<mixed>
      */
-    public $server = array();
+    public array $server = [];
 
     /**
      * Constructor.
@@ -100,11 +100,11 @@ class Request
      * Provides a magic **reference** to $_SESSION.
      *
      * @param string $name The property name; must be 'session'.
-     * @return array A reference to $_SESSION.
+     * @return array<mixed> A reference to $_SESSION.
      * @throws InvalidArgumentException for any $name other than 'session'.
      * @throws DomainException when $_SESSION is not set.
      */
-    public function &__get($name)
+    public function &__get(string $name): array
     {
         if ($name != 'session') {
             throw new InvalidArgumentException($name);
@@ -123,7 +123,7 @@ class Request
      * @param string $name The property name; must be 'session'.
      * @return bool
      */
-    public function __isset($name)
+    public function __isset(string $name): bool
     {
         if ($name != 'session') {
             throw new InvalidArgumentException();
@@ -137,9 +137,8 @@ class Request
      * superglobal.
      *
      * @param string $name The property name; must be 'session'.
-     * @return null
      */
-    public function __unset($name)
+    public function __unset(string $name): void
     {
         if ($name != 'session') {
             throw new InvalidArgumentException();
