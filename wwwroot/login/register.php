@@ -20,6 +20,7 @@ $csrfProtect = new \Security\CSRFProtectaroo($mla_request);
 
 try {
     $config = new \Config\Config();
+    // @phpstan-ignore catch.neverThrown (the autoloader throws when Config.php is missing)
 } catch (\Exception $e) {
     echo "Couldn't create Config cause " . $e->getMessage();
     exit;
