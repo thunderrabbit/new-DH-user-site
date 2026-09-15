@@ -181,12 +181,29 @@ A page is a PHP file in `wwwroot/` that includes `prepend.php`, checks login, fi
 content template, and wraps it in a layout:
 
 ```php
+<?php
+
+declare(strict_types=1);
+
 preg_match('#^(/home/[^/]+/[^/]+)#', __DIR__, $matches);
 include_once $matches[1] . '/prepend.php';
+
+/**
+ * Set up by prepend.php.
+ *
+ * @var \Config\Config $config
+ * @var \Auth\IsLoggedIn $is_logged_in
+ */
 ```
 
 That regex leans on DreamHost's `/home/username/domain.com/` layout to find the project
 root from any depth. Use it in every page; do not use relative includes.
+
+`declare(strict_types=1);` goes first in every PHP file except templates, so a wrong scalar
+type is an error rather than a silent conversion. The `@var` block names the `prepend.php`
+globals the page uses (`$config`, `$is_logged_in`, `$mla_request`, `$mla_database`,
+`$dbExistaroo`) so PHPStan knows their types. A global the page uses but doesn't list is
+reported as possibly undefined, and the commit check blocks it.
 
 Then see `wwwroot/admin/index.php` with `templates/admin/index.tpl.php` and
 `templates/layout/admin_base.tpl.php` for the page → content → layout pattern.
