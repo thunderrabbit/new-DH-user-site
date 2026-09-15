@@ -183,7 +183,7 @@ class IsLoggedIn
      * Looks up hashed password for username, and checks it against the password provided
      * @param $username
      * @param $password
-     * @return bool
+     * @return int The user_id, or 0 when the username or password is wrong.
      */
     private function checkPHPHashedPassword($username, $password): int
     {

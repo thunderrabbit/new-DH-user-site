@@ -47,7 +47,7 @@ class Template
      *
      * This function is used to return the rendered template as a string.
      * It is used to get the inner content of what will be sent to a base template.
-     * @return bool|string
+     * @return string
      */
     public function grabTheGoods(): string
     {
