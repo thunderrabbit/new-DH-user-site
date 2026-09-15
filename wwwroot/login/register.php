@@ -53,6 +53,7 @@ $creating_admin_user = !$dbExistaroo->firstUserExistBool();
 $bootstrap_token_path = $config->app_path . '/bootstrap_token.txt';
 $bootstrap_token_missing = $creating_admin_user && !file_exists($bootstrap_token_path);
 
+// @phpstan-ignore nullCoalesce.property (an older Config.php may not declare it)
 $allow_registration = $config->allow_registration ?? true;
 $registration_closed = !$creating_admin_user && !$allow_registration;
 

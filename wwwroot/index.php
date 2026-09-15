@@ -18,6 +18,7 @@ if ($debugLevel > 0) {
 }
 
 # A Config.php written before $site_title existed should still render a page.
+// @phpstan-ignore nullCoalesce.property (an older Config.php may not declare it)
 $site_title = $config->site_title ?? 'Site';
 
 if ($is_logged_in->isLoggedIn()) {

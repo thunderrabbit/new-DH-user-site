@@ -14,6 +14,7 @@ include_once $matches[1] . '/prepend.php';
  */
 
 # A Config.php written before $site_title existed should still render a page.
+// @phpstan-ignore nullCoalesce.property (an older Config.php may not declare it)
 $site_title = $config->site_title ?? 'Site';
 
 if ($is_logged_in->isLoggedIn() && $is_logged_in->isAdmin()) {
@@ -21,6 +22,7 @@ if ($is_logged_in->isLoggedIn() && $is_logged_in->isAdmin()) {
     $page->setTemplate("admin/index.tpl.php");
     $page->set(name: "site_title", value: $site_title);
     $page->set(name: "site_version", value: SENTIMENTAL_VERSION);
+    // @phpstan-ignore nullCoalesce.property (an older Config.php may not declare it)
     $page->set(name: "allow_registration", value: $config->allow_registration ?? true);
     $page->set(name: "username", value: $is_logged_in->getLoggedInUsername());
 
