@@ -1,6 +1,6 @@
 <?php
 
-const SENTIMENTAL_VERSION = "Cookies go stale";
+const SENTIMENTAL_VERSION = "Style at the door";
 
 # write errors to screen
 ini_set('display_errors', 1);
