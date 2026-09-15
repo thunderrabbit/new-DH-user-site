@@ -93,7 +93,7 @@ class Base
                 throw new \Database\EDatabaseMissing("Database '{$config->dbName}' not found.");
             }
 
-            return count($result) > 0;
+            return true;
         } catch (\PDOException $e) {
             throw new \Database\EDatabaseException("Failed to query for DB existence: " . $e->getMessage());
         }
@@ -114,14 +114,12 @@ class Base
         );
 
         foreach ($statements as $statement) {
-            if (!empty($statement)) {
-                try {
-                    $pdo->exec($statement);
-                } catch (\PDOException $e) {
-                    throw new \Database\EDatabaseException(
-                        "Error executing statement: $statement. Error: " . $e->getMessage()
-                    );
-                }
+            try {
+                $pdo->exec($statement);
+            } catch (\PDOException $e) {
+                throw new \Database\EDatabaseException(
+                    "Error executing statement: $statement. Error: " . $e->getMessage()
+                );
             }
         }
     }
