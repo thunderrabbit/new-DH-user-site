@@ -5,7 +5,7 @@
 preg_match('#^(/home/[^/]+/[^/]+)#', __DIR__, $matches);
 include_once $matches[1] . '/prepend.php';
 
-$debugLevel = intval(value: $_GET['debug']) ?? 0;
+$debugLevel = (int) ($_GET['debug'] ?? 0);
 if ($debugLevel > 0) {
     echo "<pre>Debug Level: $debugLevel</pre>";
 }
