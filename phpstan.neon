@@ -1,6 +1,6 @@
 # Static analysis, run in Docker by ~/work/rob/standards-mcp/run-phpstan.sh.
 parameters:
-    level: 5
+    level: 10
     paths:
         - classes
         - wwwroot
@@ -14,6 +14,12 @@ parameters:
             # that a fresh clone doesn't have.
             - Tests/_output/*
             - Tests/Support/*
+    ignoreErrors:
+        # Every entry script finds the project root by matching DreamHost's
+        # /home/<user>/<domain> path (see CLAUDE.md), which always matches there.
+        -
+            message: '#^Offset 1 might not exist on array\{\}\|array\{non-falsy-string, non-falsy-string\}\.$#'
+            path: wwwroot/*
     bootstrapFiles:
         - vendor/autoload.php
         - Tests/Unit/_bootstrap.php
