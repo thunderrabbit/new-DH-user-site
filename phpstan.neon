@@ -1,6 +1,6 @@
 # Static analysis, run in Docker by ~/work/rob/standards-mcp/run-phpstan.sh.
 parameters:
-    level: 0
+    level: 5
     paths:
         - classes
         - wwwroot
