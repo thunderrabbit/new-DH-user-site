@@ -5,6 +5,14 @@
 preg_match('#^(/home/[^/]+/[^/]+)#', __DIR__, $matches);
 include_once $matches[1] . '/prepend.php';
 
+/**
+ * Set up by prepend.php.
+ *
+ * @var \Config\Config $config
+ * @var \Database\DBExistaroo $dbExistaroo
+ * @var \Auth\IsLoggedIn $is_logged_in
+ */
+
 # A Config.php written before $site_title existed should still render a page.
 $site_title = $config->site_title ?? 'Site';
 

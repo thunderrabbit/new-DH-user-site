@@ -4,6 +4,13 @@
 preg_match('#^(/home/[^/]+/[^/]+)#', __DIR__, $matches);
 include_once $matches[1] . '/prepend.php';
 
+/**
+ * Set up by prepend.php.
+ *
+ * @var \Database\DBExistaroo $dbExistaroo
+ * @var \Auth\IsLoggedIn $is_logged_in
+ */
+
 header("Content-Type: application/json");
 
 if (!$is_logged_in->isLoggedIn() || !$is_logged_in->isAdmin()) {
