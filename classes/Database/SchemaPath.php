@@ -41,7 +41,7 @@ class SchemaPath
         $realBase = realpath($this->app_path . "/db_schemas");
         $realTarget = realpath($fullPath);
 
-        if (!$realTarget || strpos($realTarget, $realBase) !== 0) {
+        if ($realBase === false || $realTarget === false || !str_starts_with($realTarget, $realBase)) {
             throw new \Exception("Resolved path escapes base directory: $versionWithFile");
         }
 
