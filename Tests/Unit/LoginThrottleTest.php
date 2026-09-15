@@ -35,8 +35,12 @@ class LoginThrottleTest extends Unit
         return new \Auth\LoginThrottle($this->pdo, $this->t0->modify("+{$seconds_after_t0} seconds"));
     }
 
-    private function failTimes(\Auth\LoginThrottle $t, int $times, string $user = 'rob', string $ip = '203.0.113.7'): void
-    {
+    private function failTimes(
+        \Auth\LoginThrottle $t,
+        int $times,
+        string $user = 'rob',
+        string $ip = '203.0.113.7',
+    ): void {
         for ($i = 0; $i < $times; $i++) {
             $t->recordFailure($user, $ip);
         }
