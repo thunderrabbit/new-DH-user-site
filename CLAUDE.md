@@ -213,11 +213,12 @@ All three must pass (or the change is not commit-ready). Setup and fixing:
   deliberate, not a backlog. `templates/*.tpl.php` are out of scope.
 - **Every commit is checked.** `.githooks/pre-commit` runs phpcs on the staged
   content of each staged PHP file in `phpcs.xml`'s `<file>` scope (the whole
-  scope when `phpcs.xml` itself is staged) and blocks on any error or warning.
-  Enable it once per clone with `git config core.hooksPath .githooks`. Merges
-  (`git close-bubble`) don't run it; `git commit --no-verify` is the emergency
-  bypass, not a way to skip a fix. The hook runs phpcs only; run the unit suite
-  yourself.
+  scope when `phpcs.xml` itself is staged), and PHPStan over the whole staged
+  tree whenever PHP, `phpstan.neon` or `composer.lock` is staged. Any error or
+  warning blocks the commit. Enable it once per clone with
+  `git config core.hooksPath .githooks`. Merges (`git close-bubble`) don't run
+  it; `git commit --no-verify` is the emergency bypass, not a way to skip a fix.
+  The hook doesn't run the unit suite; run that yourself.
 - Lines over 120 characters are warnings phpcbf can't fix, and the hook blocks
   on warnings too: put parameters and array items one per line, and split long
   strings with concatenation.
