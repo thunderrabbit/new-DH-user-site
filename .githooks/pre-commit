@@ -1,0 +1,65 @@
+#!/usr/bin/env bash
+# pre-commit: run phpcs on the STAGED content of every staged PHP file inside
+# the staged phpcs.xml's <file> scope, in the standards-mcp runner image with
+# no network. Any error or warning blocks the commit.
+#
+# The scope is read from phpcs.xml itself, so widening the ruleset widens the
+# hook with it. Checking the index, not the working tree, means a half-staged
+# file is judged on exactly what will be committed.
+#
+# Enable once per clone:  git config core.hooksPath .githooks
+# Bypass in an emergency: git commit --no-verify
+set -euo pipefail
+
+IMAGE="standards-codeception-runner:php8.3"
+ROOT="$(git rev-parse --show-toplevel)"
+cd "$ROOT"
+
+# <file>classes</file> becomes 'classes/*.php'; <file>prepend.php</file> stays as is.
+mapfile -t SCOPE < <(git show :phpcs.xml | sed -n 's#.*<file>\(.*\)</file>.*#\1#p' |
+    while read -r f; do [[ $f == *.php ]] && echo "$f" || echo "$f/*.php"; done)
+[ "${#SCOPE[@]}" -eq 0 ] && exit 0
+
+# A staged ruleset change is judged against every file it governs, not just
+# the PHP that happens to ride along with it.
+if git diff --cached --quiet -- phpcs.xml; then
+    mapfile -t FILES < <(git diff --cached --name-only --diff-filter=ACMR -- "${SCOPE[@]}")
+else
+    mapfile -t FILES < <(git ls-files -- "${SCOPE[@]}")
+fi
+[ "${#FILES[@]}" -eq 0 ] && exit 0
+
+if [ ! -x vendor/bin/phpcs ]; then
+    echo "pre-commit: vendor/bin/phpcs is missing; run the composer install in CLAUDE.md." >&2
+    echo "pre-commit: bypass once with: git commit --no-verify" >&2
+    exit 1
+fi
+
+if ! docker image inspect "$IMAGE" >/dev/null 2>&1; then
+    echo "pre-commit: Docker image $IMAGE is not available (is Docker running?)." >&2
+    echo "pre-commit: phpcs could not check ${#FILES[@]} staged PHP file(s), so the commit is blocked." >&2
+    echo "pre-commit: fix Docker, or bypass once with: git commit --no-verify" >&2
+    exit 1
+fi
+
+STAGE="$(mktemp -d)"
+trap 'rm -rf "$STAGE"' EXIT
+git checkout-index --prefix="$STAGE/" -- "${FILES[@]}"
+git show :phpcs.xml > "$STAGE/phpcs.xml"
+
+set +e
+docker run --rm --network none \
+    -v "$ROOT":/app:ro \
+    -v "$STAGE":/stage:ro \
+    -w /stage \
+    "$IMAGE" \
+    php -d memory_limit=1G /app/vendor/bin/phpcs --standard=/stage/phpcs.xml --no-colors -s "${FILES[@]}"
+rc=$?
+set -e
+
+if [ "$rc" -ne 0 ]; then
+    echo "pre-commit: phpcs found problems in the staged files above (exit $rc), so the commit is blocked." >&2
+    echo "pre-commit: auto-fix what phpcbf can, re-stage, and commit again:" >&2
+    echo "  docker run --rm --network none -v \"$ROOT\":/app -w /app $IMAGE vendor/bin/phpcbf <files>" >&2
+    exit 1
+fi
