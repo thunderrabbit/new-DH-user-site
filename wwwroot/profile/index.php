@@ -1,9 +1,19 @@
 <?php
 
+declare(strict_types=1);
+
 # Must include here because DH runs FastCGI https://www.phind.com/search?cache=zfj8o8igbqvaj8cm91wp1b7k
 # Extract DreamHost project root: /home/username/domain.com
 preg_match('#^(/home/[^/]+/[^/]+)#', __DIR__, $matches);
 include_once $matches[1] . '/prepend.php';
+
+/**
+ * Set up by prepend.php.
+ *
+ * @var \Config\Config $config
+ * @var \Auth\IsLoggedIn $is_logged_in
+ * @var \PDO $mla_database
+ */
 
 // Check if user is logged in
 if (!$is_logged_in->isLoggedIn()) {
@@ -17,8 +27,11 @@ $success_message = '';
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $current_password = $_POST['current_password'] ?? '';
+    $current_password = is_string($current_password) ? $current_password : '';
     $new_password = $_POST['new_password'] ?? '';
+    $new_password = is_string($new_password) ? $new_password : '';
     $confirm_password = $_POST['confirm_password'] ?? '';
+    $confirm_password = is_string($confirm_password) ? $confirm_password : '';
 
     // Validate input
     $errors = [];

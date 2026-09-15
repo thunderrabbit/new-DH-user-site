@@ -1,10 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Database;
 
 class DBExistaroo
 {
-    private $automaticSchemaPrefixes = [
+    private const AUTOMATIC_SCHEMA_PREFIXES = [
         "00",
         "01",
     ];
@@ -26,6 +28,9 @@ class DBExistaroo
     ) {
     }
 
+    /**
+     * @return list<string>
+     */
     public function checkaroo(): array
     {
         $errors = [];
@@ -113,16 +118,16 @@ class DBExistaroo
 
     private function applyInitialSchemas(): void
     {
-        foreach ($this->automaticSchemaPrefixes as $prefix) {
+        foreach (self::AUTOMATIC_SCHEMA_PREFIXES as $prefix) {
             $dir = $this->config->app_path . "/db_schemas";
-            $schema_dirs = glob("$dir/{$prefix}_*", GLOB_ONLYDIR);
+            $schema_dirs = glob("$dir/{$prefix}_*", GLOB_ONLYDIR) ?: [];
 
             foreach ($schema_dirs as $schema_dir) {
                 $version = basename($schema_dir);
                 // The automatic prefixes bring a database into existence, so every
                 // file here is a CREATE TABLE. Later migrations are the ones that
                 // ALTER, and they are named freely - see SchemaPath::resolve().
-                $sql_files = glob("$schema_dir/create_*.sql");
+                $sql_files = glob("$schema_dir/create_*.sql") ?: [];
 
                 foreach ($sql_files as $sql_path) {
                     $this->applySchemaPath($sql_path);
@@ -152,7 +157,7 @@ class DBExistaroo
             }
         }
         foreach ($this->getPendingMigrations() as $key) {
-            if (in_array(substr($key, 0, 2), $this->automaticSchemaPrefixes, true)) {
+            if (in_array(substr($key, 0, 2), self::AUTOMATIC_SCHEMA_PREFIXES, true)) {
                 $this->applyMigration($key);
             }
         }
@@ -169,6 +174,9 @@ class DBExistaroo
             throw new \Exception("Missing schema file: $sql_path");
         }
         $sql = file_get_contents($sql_path);
+        if ($sql === false) {
+            throw new \Exception("Could not read schema file: $sql_path");
+        }
 
         // Use native PDO to execute multiple SQL statements
         \Database\Base::executeMultipleSQL($this->pdo, $sql);
@@ -195,6 +203,9 @@ class DBExistaroo
         return $this->hasAnyUsers();
     }
 
+    /**
+     * @return list<string>
+     */
     public function getPendingMigrations(): array
     {
         $pending = [];
@@ -202,13 +213,13 @@ class DBExistaroo
         $base_dir = $this->config->app_path . "/db_schemas";
 
         // Get all numbered schema directories (e.g., 00_bedrock, 01_gumdrop_cloud, 02_workers, etc.)
-        $schema_dirs = glob("$base_dir/[0-9][0-9]_*", GLOB_ONLYDIR);
+        $schema_dirs = glob("$base_dir/[0-9][0-9]_*", GLOB_ONLYDIR) ?: [];
         sort($schema_dirs); // Ensure they're processed in numerical order
 
         foreach ($schema_dirs as $schema_dir) {
             $version = basename($schema_dir);   // directory name in $base_dir, e.g. "02_workers"
             // print_rob($version, false);
-            $create_files = glob("$schema_dir/*_*.sql");
+            $create_files = glob("$schema_dir/*_*.sql") ?: [];
 
             foreach ($create_files as $file) {
                 $key = "$version/" . basename($file);
@@ -224,15 +235,18 @@ class DBExistaroo
         return $pending;
     }
 
+    /**
+     * @return list<string>
+     */
     private function getAppliedVersions(): array
     {
         $versions = [];
         $stmt = $this->pdo->prepare("SELECT applied_version FROM applied_DB_versions");
         $stmt->execute();
-        $results = $stmt->fetchAll();
-
-        foreach ($results as $row) {
-            $versions[] = $row['applied_version'];
+        foreach ($stmt->fetchAll(\PDO::FETCH_COLUMN) as $version) {
+            if (is_string($version)) {
+                $versions[] = $version;
+            }
         }
         return $versions;
     }

@@ -45,8 +45,9 @@ and a clean layout system with cookie-based authentication.
 3. **Create the database** in the DreamHost panel, with a user granted on it.
    The application will create its own *tables*, but it will not create the database.
 
-4. **Clone this repo locally**, then generate the setup token that will let you — and only
-   you — create the first admin user:
+4. **Clone this repo locally** and turn on its commit checks with
+   `git config core.hooksPath .githooks` (see *Checks on every commit*). Then generate the
+   setup token that will let you — and only you — create the first admin user:
 
    ```bash
    openssl rand -hex 16 > bootstrap_token.txt
@@ -155,18 +156,54 @@ Do not deploy by pushing to a git remote. Commits are for history, not for trans
 
 ---
 
+## 🧪 Checks on every commit
+
+`.githooks/pre-commit` runs phpcs on each staged PHP file and PHPStan over the whole staged
+tree, both in Docker (`standards-codeception-runner:php8.3`, no network). Any finding blocks
+the commit.
+
+Git never turns on a repo's hooks by itself, so **run this once in every clone you commit
+from**:
+
+```bash
+git config core.hooksPath .githooks
+```
+
+`git config core.hooksPath` should then print `.githooks`. The hook needs Docker running and
+`vendor/` populated (the composer command is in `CLAUDE.md`). Merges don't run it, and
+`git commit --no-verify` skips it in an emergency.
+
+---
+
 ## 🧩 Adding a page
 
 A page is a PHP file in `wwwroot/` that includes `prepend.php`, checks login, fills a
 content template, and wraps it in a layout:
 
 ```php
+<?php
+
+declare(strict_types=1);
+
 preg_match('#^(/home/[^/]+/[^/]+)#', __DIR__, $matches);
 include_once $matches[1] . '/prepend.php';
+
+/**
+ * Set up by prepend.php.
+ *
+ * @var \Config\Config $config
+ * @var \Auth\IsLoggedIn $is_logged_in
+ */
 ```
 
 That regex leans on DreamHost's `/home/username/domain.com/` layout to find the project
 root from any depth. Use it in every page; do not use relative includes.
+
+`declare(strict_types=1);` goes first in every PHP file except templates, so a wrong scalar
+type is an error rather than a silent conversion. The `@var` block names the `prepend.php`
+globals the page uses (`$config`, `$is_logged_in`, `$mla_request`, `$mla_database`,
+`$dbExistaroo`) so PHPStan knows their types. A global the page uses but doesn't list is
+reported as possibly undefined, and the commit check blocks it.
 
 Then see `wwwroot/admin/index.php` with `templates/admin/index.tpl.php` and
 `templates/layout/admin_base.tpl.php` for the page → content → layout pattern.

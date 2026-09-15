@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Auth;
 
 /**
@@ -100,6 +102,9 @@ class LoginThrottle
         return $when->format('Y-m-d H:i:s');
     }
 
+    /**
+     * @param list<string|int|null> $params
+     */
     private function countSince(string $sql, array $params): int
     {
         try {
@@ -114,6 +119,9 @@ class LoginThrottle
         }
     }
 
+    /**
+     * @param list<string|int|null> $params
+     */
     private function run(string $sql, array $params): void
     {
         try {

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Auth;
 
 class CookieOptions
@@ -17,6 +19,8 @@ class CookieOptions
      * arrives logged out. Lax still withholds it on cross-site POSTs, and the
      * CSRF token check in prepend.php is the real defence; SameSite is the
      * backstop. Do not loosen to None without a reason written here.
+     *
+     * @return array{expires: int, path: string, domain: string, secure: bool, httponly: bool, samesite: 'Lax'}
      */
     public static function build(string $domain_name, int $expires): array
     {

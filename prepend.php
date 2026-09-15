@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 const SENTIMENTAL_VERSION = "Style at the door";
 
 # write errors to screen
@@ -22,6 +24,7 @@ $csrfProtect = new \Security\CSRFProtectaroo($mla_request);
  */
 function csrf_field(): string
 {
+    /** @var \Security\CSRFProtectaroo $csrfProtect */
     global $csrfProtect;
     return $csrfProtect->field();
 }
@@ -32,6 +35,7 @@ function csrf_field(): string
  */
 function csrf_token(): string
 {
+    /** @var \Security\CSRFProtectaroo $csrfProtect */
     global $csrfProtect;
     return $csrfProtect->getToken();
 }
@@ -47,7 +51,7 @@ if (!$csrfProtect->validateRequest()) {
     exit;
 }
 
-function print_rob($object, $exit = true)
+function print_rob(mixed $object, bool $exit = true): void
 {
     echo "<pre>";
     if (is_object($object) && method_exists($object, "toArray")) {
@@ -63,6 +67,7 @@ function print_rob($object, $exit = true)
 
 try {
     $config = new \Config\Config();
+    // @phpstan-ignore catch.neverThrown (the autoloader throws when Config.php is missing)
 } catch (\Exception $e) {
     echo "Couldn't create Config cause " . $e->getMessage();
     exit;

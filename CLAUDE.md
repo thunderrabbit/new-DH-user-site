@@ -134,10 +134,23 @@ This is a minimalist PHP web application framework designed for DreamHost deploy
 All PHP files (except templates and prepend.php itself) must include prepend.php. Use this consistent pattern regardless of directory depth:
 
 ```php
+<?php
+
+declare(strict_types=1);
+
 # Extract DreamHost project root: /home/username/domain.com
 preg_match('#^(/home/[^/]+/[^/]+)#', __DIR__, $matches);
 include_once $matches[1] . '/prepend.php';
+
+/**
+ * Set up by prepend.php.
+ *
+ * @var \Config\Config $config
+ * @var \Auth\IsLoggedIn $is_logged_in
+ */
 ```
+
+List only the globals the page uses in the `@var` block, so PHPStan knows their types.
 
 This leverages DreamHost's consistent `/home/username/domain.com/` path structure to dynamically find the project root.
 
@@ -182,15 +195,16 @@ This leverages DreamHost's consistent `/home/username/domain.com/` path structur
 - Visit `/admin/migrate_tables.php` to manually apply pending migrations
 - Database schemas automatically applied for prefixes "00" and "01"; later prefixes need an admin
 
-## Standards gates (unit tests + phpcs) — run BEFORE you commit
+## Standards gates (unit tests + phpcs + PHPStan) — run BEFORE you commit
 
-The template carries the two commit-tier gates from `~/work/rob/standards-mcp`
+The template carries three commit-tier gates from `~/work/rob/standards-mcp`
 (hermetic: read-only mount, no network, no credentials). Clones inherit them.
 
     ~/work/rob/standards-mcp/run-unit.sh  <this repo>   # Codeception Unit suite
     ~/work/rob/standards-mcp/run-phpcs.sh <this repo>   # PSR-12 style gate
+    ~/work/rob/standards-mcp/run-phpstan.sh <this repo> # PHPStan, level in phpstan.neon
 
-Both must pass (or the change is not commit-ready). Setup and fixing:
+All three must pass (or the change is not commit-ready). Setup and fixing:
 
 - Populate `vendor/` once per clone (rootless docker, so container root writes
   as your user):
@@ -206,8 +220,35 @@ Both must pass (or the change is not commit-ready). Setup and fixing:
       docker run --rm --network none -v "$PWD":/app -w /app \
         standards-codeception-runner:php8.3 php -d memory_limit=1G vendor/bin/phpcbf
 
-- The ruleset is `phpcs.xml` — PSR-12 with two excludes documented inline
-  (pending manual cleanup). `templates/*.tpl.php` are out of scope.
+- The ruleset is `phpcs.xml`: PSR-12 over `classes/`, `wwwroot/`, `prepend.php`
+  and `Tests/`, with two narrow exclusions explained inline (side effects in
+  `prepend.php`; Codeception's `_before`/`_after` names under `Tests/`). They are
+  deliberate, not a backlog. `templates/*.tpl.php` are out of scope.
+- **Every commit is checked.** `.githooks/pre-commit` runs phpcs on the staged
+  content of each staged PHP file in `phpcs.xml`'s `<file>` scope (the whole
+  scope when `phpcs.xml` itself is staged), and PHPStan over the whole staged
+  tree whenever PHP, `phpstan.neon` or `composer.lock` is staged. Any error or
+  warning blocks the commit. Enable it once per clone with
+  `git config core.hooksPath .githooks`. Merges (`git close-bubble`) don't run
+  it; `git commit --no-verify` is the emergency bypass, not a way to skip a fix.
+  The hook doesn't run the unit suite; run that yourself.
+- Lines over 120 characters are warnings phpcbf can't fix, and the hook blocks
+  on warnings too: put parameters and array items one per line, and split long
+  strings with concatenation.
+- PHPStan runs at level 10, its maximum, with no baseline. Fix a finding rather
+  than baselining it or lowering the level. Entry scripts name the globals they
+  take from `prepend.php` in a `@var` block under the include. A finding PHPStan
+  can't see past gets `// @phpstan-ignore <identifier> (reason)` on that one line,
+  never a blanket ignore: the `catch` around `new \Config\Config()` is live
+  because the autoloader throws, and `$config->allow_registration ?? true` is
+  there for a Config.php older than the property. The one ignore in
+  `phpstan.neon` is scoped to `wwwroot/` and the `$matches[1]` of the include
+  idiom below.
+- Every PHP file in scope starts with `declare(strict_types=1);`. Templates are
+  out of scope: mostly HTML, and a declare must be a file's first statement.
+  Superglobals, decoded JSON and PDO rows are `mixed`, so check `is_string()` or
+  `is_numeric()` before passing them on. A field posted as `name[]=x` arrives as
+  an array.
 - Unit tests live in `Tests/Unit/`; the suite bootstraps its own autoloader and
   must stay DB-free and session-free (see `Tests/Unit/_bootstrap.php`). A test
   that needs a live DB or endpoint does not belong in the Unit suite. An

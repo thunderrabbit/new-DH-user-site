@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests\Unit;
 
 use Codeception\Test\Unit;
@@ -16,7 +18,7 @@ class CookieRepositoryTest extends Unit
     private \PDO $pdo;
     private \DateTimeImmutable $t0;
 
-    protected function _before()
+    protected function _before(): void
     {
         $this->pdo = new \PDO('sqlite::memory:');
         $this->pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
@@ -42,17 +44,27 @@ class CookieRepositoryTest extends Unit
 
     private function rowCount(): int
     {
-        return (int) $this->pdo->query("SELECT COUNT(*) FROM cookies")->fetchColumn();
+        return $this->countRows("SELECT COUNT(*) FROM cookies");
     }
 
-    public function testIssuedCookieIsFoundForTheSameIpAndBrowser()
+    private function countRows(string $sql): int
+    {
+        $stmt = $this->pdo->query($sql);
+        $count = $stmt === false ? false : $stmt->fetchColumn();
+        if (!is_int($count)) {
+            $this->fail("COUNT query failed: $sql");
+        }
+        return $count;
+    }
+
+    public function testIssuedCookieIsFoundForTheSameIpAndBrowser(): void
     {
         $repo = $this->at(0);
         $repo->issue(7, 'hash-a', self::IP, self::UA, 30 * self::DAY);
         $this->assertSame(7, $repo->findUserId('hash-a', self::IP, self::UA));
     }
 
-    public function testDifferentIpOrBrowserOrUnknownHashIsNobody()
+    public function testDifferentIpOrBrowserOrUnknownHashIsNobody(): void
     {
         $repo = $this->at(0);
         $repo->issue(7, 'hash-a', self::IP, self::UA, 30 * self::DAY);
@@ -61,7 +73,7 @@ class CookieRepositoryTest extends Unit
         $this->assertSame(0, $repo->findUserId('hash-zzz', self::IP, self::UA), 'unknown');
     }
 
-    public function testCookieStopsWorkingWhenItExpires()
+    public function testCookieStopsWorkingWhenItExpires(): void
     {
         $this->at(0)->issue(7, 'hash-a', self::IP, self::UA, 30 * self::DAY);
         $this->assertSame(7, $this->at(30 * self::DAY - 1)->findUserId('hash-a', self::IP, self::UA));
@@ -69,7 +81,7 @@ class CookieRepositoryTest extends Unit
         $this->assertSame(0, $this->at(31 * self::DAY)->findUserId('hash-a', self::IP, self::UA), 'after');
     }
 
-    public function testIssuingPurgesExpiredRows()
+    public function testIssuingPurgesExpiredRows(): void
     {
         $this->at(0)->issue(7, 'old', self::IP, self::UA, self::DAY);
         $this->at(0)->issue(7, 'fresh', self::IP, self::UA, 30 * self::DAY);
@@ -77,7 +89,7 @@ class CookieRepositoryTest extends Unit
         $this->assertSame(2, $this->rowCount(), 'old is gone, fresh and newest remain');
     }
 
-    public function testRevokeRemovesOneCookie()
+    public function testRevokeRemovesOneCookie(): void
     {
         $repo = $this->at(0);
         $repo->issue(7, 'hash-a', self::IP, self::UA, self::DAY);
@@ -87,7 +99,7 @@ class CookieRepositoryTest extends Unit
         $this->assertSame(7, $repo->findUserId('hash-b', self::IP, self::UA));
     }
 
-    public function testRevokeAllKeepsTheCookieInHand()
+    public function testRevokeAllKeepsTheCookieInHand(): void
     {
         $repo = $this->at(0);
         $repo->issue(7, 'phone', self::IP, self::UA, self::DAY);
@@ -101,7 +113,7 @@ class CookieRepositoryTest extends Unit
         $this->assertSame(9, $repo->findUserId('someone-else', self::IP, self::UA), 'other users untouched');
     }
 
-    public function testRevokeAllWithoutAKeepSignsOutEverywhere()
+    public function testRevokeAllWithoutAKeepSignsOutEverywhere(): void
     {
         $repo = $this->at(0);
         $repo->issue(7, 'phone', self::IP, self::UA, self::DAY);

@@ -1,9 +1,19 @@
 <?php
 
+declare(strict_types=1);
+
 # Must include here because DH runs FastCGI https://www.phind.com/search?cache=zfj8o8igbqvaj8cm91wp1b7k
 # Extract DreamHost project root: /home/username/domain.com
 preg_match('#^(/home/[^/]+/[^/]+)#', __DIR__, $matches);
 include_once $matches[1] . '/prepend.php';
+
+/**
+ * Set up by prepend.php.
+ *
+ * @var \Config\Config $config
+ * @var \Database\DBExistaroo $dbExistaroo
+ * @var \Auth\IsLoggedIn $is_logged_in
+ */
 
 if ($is_logged_in->isLoggedIn() && $is_logged_in->isAdmin()) {
     $page = new \View\Template(config: $config);

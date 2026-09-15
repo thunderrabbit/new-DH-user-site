@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests\Unit;
 
 use Codeception\Test\Unit;
@@ -13,7 +15,7 @@ class TemplateTest extends Unit
         return new \View\Template($config);
     }
 
-    public function testRendersTemplateWithVars()
+    public function testRendersTemplateWithVars(): void
     {
         $page = $this->template();
         $page->setTemplate("index.tpl.php");
@@ -26,7 +28,7 @@ class TemplateTest extends Unit
         $this->assertStringContainsString('<h1>Test Site</h1>', $html);
     }
 
-    public function testEscapesHtmlInSiteTitle()
+    public function testEscapesHtmlInSiteTitle(): void
     {
         $page = $this->template();
         $page->setTemplate("index.tpl.php");
@@ -39,7 +41,7 @@ class TemplateTest extends Unit
         $this->assertStringContainsString('&lt;script&gt;', $html);
     }
 
-    public function testConditionalVarShownOnlyWhenSet()
+    public function testConditionalVarShownOnlyWhenSet(): void
     {
         $page = $this->template();
         $page->setTemplate("index.tpl.php");
@@ -55,7 +57,7 @@ class TemplateTest extends Unit
         $this->assertStringContainsString('Version: 1.2.3', $page->grabTheGoods());
     }
 
-    public function testLayoutNestingViaGrabTheGoods()
+    public function testLayoutNestingViaGrabTheGoods(): void
     {
         // The wwwroot pattern: render an inner template, hand it to the layout.
         $inner = $this->template();
@@ -75,7 +77,7 @@ class TemplateTest extends Unit
         $this->assertStringContainsString('Welcome back, Rob!', $html);
     }
 
-    public function testLayoutPageTitleDefaultsWhenUnset()
+    public function testLayoutPageTitleDefaultsWhenUnset(): void
     {
         $layout = $this->template();
         $layout->setTemplate("layout/base.tpl.php");

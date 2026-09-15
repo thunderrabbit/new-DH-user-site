@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests\Unit;
 
 use Codeception\Test\Unit;
@@ -8,18 +10,18 @@ class RandomTokenTest extends Unit
 {
     private \Auth\RandomToken $token;
 
-    protected function _before()
+    protected function _before(): void
     {
         $this->token = new \Auth\RandomToken();
     }
 
-    public function testGenerateLength()
+    public function testGenerateLength(): void
     {
         $result = $this->token->generate(10);
         $this->assertEquals(10, strlen($result));
     }
 
-    public function testGenerateLengthVarious()
+    public function testGenerateLengthVarious(): void
     {
         foreach ([1, 5, 20, 100] as $length) {
             $result = $this->token->generate($length);
@@ -27,7 +29,7 @@ class RandomTokenTest extends Unit
         }
     }
 
-    public function testGenerateUsesDefaultCharset()
+    public function testGenerateUsesDefaultCharset(): void
     {
         // Default charset excludes 'e', 'i', 'l' (confusable chars)
         $default = "0123456789abcdfghjkmnopqrstuvwxyzABCDEFGHJKLMNOPQRSTUVWXYZ";
@@ -46,7 +48,7 @@ class RandomTokenTest extends Unit
         }
     }
 
-    public function testGenerateCustomCharset()
+    public function testGenerateCustomCharset(): void
     {
         $charset = 'ABC';
         $result = $this->token->generate(20, $charset);
@@ -61,7 +63,7 @@ class RandomTokenTest extends Unit
         }
     }
 
-    public function testGenerateIsRandom()
+    public function testGenerateIsRandom(): void
     {
         // Two calls should produce different results (statistically)
         $results = [];

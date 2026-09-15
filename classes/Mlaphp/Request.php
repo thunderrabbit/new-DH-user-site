@@ -7,6 +7,8 @@
  * @license http://opensource.org/licenses/bsd-license.php BSD
  */
 
+declare(strict_types=1);
+
 namespace Mlaphp;
 
 use DomainException;
@@ -28,111 +30,83 @@ use InvalidArgumentException;
  * when using Request81 as vs. the original Request.
  *
  * @package mlaphp/mlaphp
+ *
+ * @property array<mixed> $session A reference to $_SESSION; see __get().
  */
 class Request
 {
     /**
      * A copy of $_COOKIE.
      *
-     * @var array
+     * @var array<mixed>
      */
-    public $cookie = array();
+    public array $cookie = [];
 
     /**
      * A copy of $_ENV.
      *
-     * @var array
+     * @var array<mixed>
      */
-    public $env = array();
+    public array $env = [];
 
     /**
      * A copy of $_FILES.
      *
-     * @var array
+     * @var array<mixed>
      */
-    public $files = array();
+    public array $files = [];
 
     /**
      * A copy of $_GET.
      *
-     * @var array
+     * @var array<mixed>
      */
-    public $get = array();
+    public array $get = [];
 
     /**
      * A copy of $_POST.
      *
-     * @var array
+     * @var array<mixed>
      */
-    public $post = array();
+    public array $post = [];
 
     /**
      * A copy of $_REQUEST.
      *
-     * @var array
+     * @var array<mixed>
      */
-    public $request = array();
+    public array $request = [];
 
     /**
      * A copy of $_SERVER.
      *
-     * @var array
+     * @var array<mixed>
      */
-    public $server = array();
+    public array $server = [];
 
     /**
      * Constructor.
      */
     public function __construct()
     {
-        // mention the superglobals by name to invoke auto_globals_jit, thereby
-        // forcing them to be populated; cf. <http://php.net/auto-globals-jit>.
-        $_COOKIE;
-        $_ENV;
-        $_FILES;
-        $_GET;
-        $_POST;
-        $_REQUEST;
-        $_SERVER;
-
-        if (isset($_COOKIE)) {
-            $this->cookie = $_COOKIE;
-        }
-
-        if (isset($_ENV)) {
-            $this->env = $_ENV;
-        }
-
-        if (isset($_FILES)) {
-            $this->files = $_FILES;
-        }
-
-        if (isset($_GET)) {
-            $this->get = $_GET;
-        }
-
-        if (isset($_POST)) {
-            $this->post = $_POST;
-        }
-
-        if (isset($_REQUEST)) {
-            $this->request = $_REQUEST;
-        }
-
-        if (isset($_SERVER)) {
-            $this->server = $_SERVER;
-        }
+        $this->cookie = $_COOKIE;
+        $this->env = $_ENV;
+        $this->files = $_FILES;
+        $this->get = $_GET;
+        $this->post = $_POST;
+        $this->request = $_REQUEST;
+        $this->server = $_SERVER;
     }
 
     /**
      * Provides a magic **reference** to $_SESSION.
      *
-     * @param string $property The property name; must be 'session'.
-     * @return array A reference to $_SESSION.
+     * @param string $name The property name; must be 'session'.
+     * @return array<mixed> A reference to $_SESSION.
      * @throws InvalidArgumentException for any $name other than 'session'.
      * @throws DomainException when $_SESSION is not set.
      */
-    public function &__get($name)
+    public function &__get(string $name): array
     {
         if ($name != 'session') {
             throw new InvalidArgumentException($name);
@@ -151,7 +125,7 @@ class Request
      * @param string $name The property name; must be 'session'.
      * @return bool
      */
-    public function __isset($name)
+    public function __isset(string $name): bool
     {
         if ($name != 'session') {
             throw new InvalidArgumentException();
@@ -165,9 +139,8 @@ class Request
      * superglobal.
      *
      * @param string $name The property name; must be 'session'.
-     * @return null
      */
-    public function __unset($name)
+    public function __unset(string $name): void
     {
         if ($name != 'session') {
             throw new InvalidArgumentException();

@@ -6,6 +6,8 @@
  *
  */
 
+declare(strict_types=1);
+
 namespace Auth;
 
 class IsLoggedIn
@@ -37,8 +39,8 @@ class IsLoggedIn
 
         $found_user_id = $this->getUserIdForCookieInDatabase(
             cookie: $cookie,
-            ip_address: $_SERVER['REMOTE_ADDR'] ?? '',
-            user_agent: $_SERVER['HTTP_USER_AGENT'] ?? ''
+            ip_address: self::serverString('REMOTE_ADDR'),
+            user_agent: self::serverString('HTTP_USER_AGENT')
         );
         if ($found_user_id <= 0) {
             $this->killCookie();
@@ -59,7 +61,7 @@ class IsLoggedIn
      */
     public function attemptPasswordLogin(string $username, string $password): LoginResult
     {
-        $ip_address = $_SERVER['REMOTE_ADDR'] ?? '';
+        $ip_address = self::serverString('REMOTE_ADDR');
         if ($this->di_throttle->isThrottled($username, $ip_address)) {
             // Do not even look at the password: a throttled guess must cost
             // the attacker nothing in information and us nothing in bcrypt.
@@ -105,10 +107,10 @@ class IsLoggedIn
         // set the session variable for username
         $stmt = $this->di_pdo->prepare("SELECT `username` FROM `users` WHERE `user_id` = ? LIMIT 1");
         $stmt->execute([$user_id]);
-        $result = $stmt->fetchAll();
+        $username = $stmt->fetchColumn();
 
-        if (count($result) > 0) {
-            $this->loggedInUsername = $result[0]['username'] ?? 'ummmmmm wtf';
+        if (is_string($username)) {
+            $this->loggedInUsername = $username;
         }
     }
 
@@ -125,12 +127,9 @@ class IsLoggedIn
 
         $stmt = $this->di_pdo->prepare("SELECT `role` FROM `users` WHERE `user_id` = ? LIMIT 1");
         $stmt->execute([$this->who_is_logged_in]);
-        $result = $stmt->fetchAll();
+        $role = $stmt->fetchColumn();
 
-        if (count($result) > 0) {
-            return $result[0]['role'] ?? '';
-        }
-        return '';
+        return is_string($role) ? $role : '';
     }
 
     public function isAdmin(): bool
@@ -150,8 +149,8 @@ class IsLoggedIn
         $this->di_cookies->issue(
             user_id: $user_id,
             cookie_hash: hash('sha256', $cookie),
-            ip_bin: \Auth\IPBin::ipToBinary($_SERVER['REMOTE_ADDR'] ?? ''),
-            user_agent_md5: md5($_SERVER['HTTP_USER_AGENT'] ?? ''),
+            ip_bin: \Auth\IPBin::ipToBinary(self::serverString('REMOTE_ADDR')),
+            user_agent_md5: md5(self::serverString('HTTP_USER_AGENT')),
             lifetime_seconds: $this->di_config->cookie_lifetime,
         );
 
@@ -164,47 +163,36 @@ class IsLoggedIn
 
 
 
-    private function getIDandPHPHashedPasswordForUsername($username)
+    /**
+     * @return array<mixed> The user's row, or [] when there is no such user.
+     */
+    private function getIDandPHPHashedPasswordForUsername(string $username): array
     {
-        // get password hash
         $stmt = $this->di_pdo->prepare(
             "SELECT `user_id`, `password_hash` FROM `users` WHERE LOWER(`username`) = LOWER(?) LIMIT 1"
         );
         $stmt->execute([$username]);
-        $result = $stmt->fetchAll();
+        $row = $stmt->fetch();
 
-        if (count($result) > 0) {
-            return $result[0];
-        } else {
-            return [];
-        }
+        return is_array($row) ? $row : [];
     }
+
     /**
      * Looks up hashed password for username, and checks it against the password provided
-     * @param $username
-     * @param $password
-     * @return bool
+     * @return int The user_id, or 0 when the username or password is wrong.
      */
-    private function checkPHPHashedPassword($username, $password): int
+    private function checkPHPHashedPassword(string $username, string $password): int
     {
-        // get password hash
-        $user_id_and_hash_array = $this->getIDandPHPHashedPasswordForUsername($username);
-        if (!empty($user_id_and_hash_array)) {
-            $hashed_password = $user_id_and_hash_array['password_hash'];
-            // check it
-            if (password_verify($password, $hashed_password)) {
-                // password is correct, so this user_id has logged in properly
-                $user_id = $user_id_and_hash_array['user_id'];
-                // return user_id
-                return $user_id;
-            }
-        } else {
+        $row = $this->getIDandPHPHashedPasswordForUsername($username);
+        $hashed_password = $row['password_hash'] ?? null;
+        if (!is_string($hashed_password) || !password_verify($password, $hashed_password)) {
             return 0;
         }
 
-        return 0;
-    }
+        $user_id = $row['user_id'] ?? null;
 
+        return is_numeric($user_id) ? (int) $user_id : 0;
+    }
 
     private function getUserIdForCookieInDatabase(
         string $cookie,
@@ -240,7 +228,7 @@ class IsLoggedIn
             return 0;
         }
         $presented = $_COOKIE[$this->di_config->cookie_name] ?? '';
-        $keep = $presented === '' ? null : hash('sha256', $presented);
+        $keep = is_string($presented) && $presented !== '' ? hash('sha256', $presented) : null;
         return $this->di_cookies->revokeAllForUser($this->who_is_logged_in, $keep);
     }
 
@@ -274,5 +262,14 @@ class IsLoggedIn
         );
         setcookie($this->di_config->cookie_name, '', $cookie_options);
         $this->who_is_logged_in = 0;
+    }
+
+    /**
+     * A $_SERVER value as a string; anything absent or odd is ''.
+     */
+    private static function serverString(string $key): string
+    {
+        $value = $_SERVER[$key] ?? '';
+        return is_string($value) ? $value : '';
     }
 }
