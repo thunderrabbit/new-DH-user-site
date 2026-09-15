@@ -12,7 +12,7 @@ include_once $matches[1] . '/prepend.php';
  * @var \Auth\IsLoggedIn $is_logged_in
  */
 
-$debugLevel = (int) ($_GET['debug'] ?? 0);
+$debugLevel = filter_var($_GET['debug'] ?? 0, FILTER_VALIDATE_INT) ?: 0;
 if ($debugLevel > 0) {
     echo "<pre>Debug Level: $debugLevel</pre>";
 }

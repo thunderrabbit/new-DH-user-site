@@ -10,6 +10,7 @@ include_once $matches[1] . '/prepend.php';
  *
  * @var \Config\Config $config
  * @var \Auth\IsLoggedIn $is_logged_in
+ * @var \Mlaphp\Request $mla_request
  */
 
 if ($is_logged_in->isLoggedIn()) {

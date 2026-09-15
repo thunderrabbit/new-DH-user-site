@@ -66,9 +66,14 @@ if ($registration_closed) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // handle form submission...
     $mla_database = \Database\Base::getPDO($config);
-    $username = trim($_POST['username'] ?? '');
+    // A field posted as an array (username[]=x) is treated as empty, not fed
+    // to trim() or password_hash(), which would throw.
+    $username = $_POST['username'] ?? '';
+    $username = is_string($username) ? trim($username) : '';
     $password = $_POST['pass'] ?? '';
+    $password = is_string($password) ? $password : '';
     $password_confirm = $_POST['pass_verify'] ?? '';
+    $password_confirm = is_string($password_confirm) ? $password_confirm : '';
 
     // Validate input
     $errors = [];
@@ -92,7 +97,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Bootstrap path: the posted setup token must match the server-side file.
     // hash_equals for a constant-time compare (the token is a credential).
     if ($creating_admin_user) {
-        $setup_token = trim((string) ($_POST['setup_token'] ?? ''));
+        $setup_token = $_POST['setup_token'] ?? '';
+        $setup_token = is_string($setup_token) ? trim($setup_token) : '';
         $expected    = trim((string) @file_get_contents($bootstrap_token_path));
         if ($expected === '') {
             // Deliberately vague: this page is public while the users table is

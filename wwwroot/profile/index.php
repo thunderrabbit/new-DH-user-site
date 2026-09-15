@@ -25,8 +25,11 @@ $success_message = '';
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $current_password = $_POST['current_password'] ?? '';
+    $current_password = is_string($current_password) ? $current_password : '';
     $new_password = $_POST['new_password'] ?? '';
+    $new_password = is_string($new_password) ? $new_password : '';
     $confirm_password = $_POST['confirm_password'] ?? '';
+    $confirm_password = is_string($confirm_password) ? $confirm_password : '';
 
     // Validate input
     $errors = [];
