@@ -45,8 +45,9 @@ and a clean layout system with cookie-based authentication.
 3. **Create the database** in the DreamHost panel, with a user granted on it.
    The application will create its own *tables*, but it will not create the database.
 
-4. **Clone this repo locally**, then generate the setup token that will let you — and only
-   you — create the first admin user:
+4. **Clone this repo locally** and turn on its commit checks with
+   `git config core.hooksPath .githooks` (see *Checks on every commit*). Then generate the
+   setup token that will let you — and only you — create the first admin user:
 
    ```bash
    openssl rand -hex 16 > bootstrap_token.txt
@@ -152,6 +153,25 @@ username, hostname, and key path in `~/.ssh/config`, never in the script.
 `classes/`, `prepend.php`), not the web root.
 
 Do not deploy by pushing to a git remote. Commits are for history, not for transport.
+
+---
+
+## 🧪 Checks on every commit
+
+`.githooks/pre-commit` runs phpcs on each staged PHP file and PHPStan over the whole staged
+tree, both in Docker (`standards-codeception-runner:php8.3`, no network). Any finding blocks
+the commit.
+
+Git never turns on a repo's hooks by itself, so **run this once in every clone you commit
+from**:
+
+```bash
+git config core.hooksPath .githooks
+```
+
+`git config core.hooksPath` should then print `.githooks`. The hook needs Docker running and
+`vendor/` populated (the composer command is in `CLAUDE.md`). Merges don't run it, and
+`git commit --no-verify` skips it in an emergency.
 
 ---
 
