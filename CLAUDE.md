@@ -206,8 +206,20 @@ Both must pass (or the change is not commit-ready). Setup and fixing:
       docker run --rm --network none -v "$PWD":/app -w /app \
         standards-codeception-runner:php8.3 php -d memory_limit=1G vendor/bin/phpcbf
 
-- The ruleset is `phpcs.xml` — PSR-12 with two excludes documented inline
-  (pending manual cleanup). `templates/*.tpl.php` are out of scope.
+- The ruleset is `phpcs.xml`: PSR-12 over `classes/`, `wwwroot/`, `prepend.php`
+  and `Tests/`, with two narrow exclusions explained inline (side effects in
+  `prepend.php`; Codeception's `_before`/`_after` names under `Tests/`). They are
+  deliberate, not a backlog. `templates/*.tpl.php` are out of scope.
+- **Every commit is checked.** `.githooks/pre-commit` runs phpcs on the staged
+  content of each staged PHP file in `phpcs.xml`'s `<file>` scope (the whole
+  scope when `phpcs.xml` itself is staged) and blocks on any error or warning.
+  Enable it once per clone with `git config core.hooksPath .githooks`. Merges
+  (`git close-bubble`) don't run it; `git commit --no-verify` is the emergency
+  bypass, not a way to skip a fix. The hook runs phpcs only; run the unit suite
+  yourself.
+- Lines over 120 characters are warnings phpcbf can't fix, and the hook blocks
+  on warnings too: put parameters and array items one per line, and split long
+  strings with concatenation.
 - Unit tests live in `Tests/Unit/`; the suite bootstraps its own autoloader and
   must stay DB-free and session-free (see `Tests/Unit/_bootstrap.php`). A test
   that needs a live DB or endpoint does not belong in the Unit suite. An
