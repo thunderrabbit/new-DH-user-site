@@ -182,15 +182,16 @@ This leverages DreamHost's consistent `/home/username/domain.com/` path structur
 - Visit `/admin/migrate_tables.php` to manually apply pending migrations
 - Database schemas automatically applied for prefixes "00" and "01"; later prefixes need an admin
 
-## Standards gates (unit tests + phpcs) — run BEFORE you commit
+## Standards gates (unit tests + phpcs + PHPStan) — run BEFORE you commit
 
-The template carries the two commit-tier gates from `~/work/rob/standards-mcp`
+The template carries three commit-tier gates from `~/work/rob/standards-mcp`
 (hermetic: read-only mount, no network, no credentials). Clones inherit them.
 
     ~/work/rob/standards-mcp/run-unit.sh  <this repo>   # Codeception Unit suite
     ~/work/rob/standards-mcp/run-phpcs.sh <this repo>   # PSR-12 style gate
+    ~/work/rob/standards-mcp/run-phpstan.sh <this repo> # PHPStan, level in phpstan.neon
 
-Both must pass (or the change is not commit-ready). Setup and fixing:
+All three must pass (or the change is not commit-ready). Setup and fixing:
 
 - Populate `vendor/` once per clone (rootless docker, so container root writes
   as your user):
@@ -220,6 +221,12 @@ Both must pass (or the change is not commit-ready). Setup and fixing:
 - Lines over 120 characters are warnings phpcbf can't fix, and the hook blocks
   on warnings too: put parameters and array items one per line, and split long
   strings with concatenation.
+- PHPStan runs at the level in `phpstan.neon` with no baseline. Fix a finding
+  rather than baselining it. Entry scripts name the globals they take from
+  `prepend.php` in a `@var` block under the include. A finding PHPStan can't see
+  past (the `catch` around `new \Config\Config()` is live because the autoloader
+  throws) gets `// @phpstan-ignore <identifier> (reason)` on that one line, never
+  a blanket ignore.
 - Unit tests live in `Tests/Unit/`; the suite bootstraps its own autoloader and
   must stay DB-free and session-free (see `Tests/Unit/_bootstrap.php`). A test
   that needs a live DB or endpoint does not belong in the Unit suite. An
