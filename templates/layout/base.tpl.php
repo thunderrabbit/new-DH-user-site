@@ -9,15 +9,7 @@
     <link rel="stylesheet" href="/css/menu.css">
 </head>
 <body>
-    <div class="NavBar">
-        <a href="/">View Site</a> |
-        <div class="dropdown">
-            <a href="/profile/">Profile ▾</a>
-            <div class="dropdown-menu">
-                <a href="/logout/">Logout</a>
-            </div>
-        </div>
-    </div>
+    <?php include __DIR__ . '/../partials/menu.tpl.php'; ?>
     <div class="PageWrapper">
         <?= $page_content ?>
     </div>
