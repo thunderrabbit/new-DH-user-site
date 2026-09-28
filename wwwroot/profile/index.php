@@ -94,6 +94,7 @@ $inner = $page->grabTheGoods();
 $layout = new \View\Template(config: $config);
 $layout->setTemplate("layout/base.tpl.php");
 $layout->set("username", $is_logged_in->getLoggedInUsername());
+$layout->set("is_admin", $is_logged_in->isAdmin());
 $layout->set("page_title", "Change Password");
 $layout->set("page_content", $inner);
 $layout->echoToScreen();

@@ -29,6 +29,7 @@ if ($is_logged_in->isLoggedIn()) {
     $page->setTemplate("layout/admin_base.tpl.php");
     $page->set("page_title", $site_title);
     $page->set("username", $is_logged_in->getLoggedInUsername());
+    $page->set("is_admin", $is_logged_in->isAdmin());
     $page->set("site_version", SENTIMENTAL_VERSION);
 
     // Get the inner content
