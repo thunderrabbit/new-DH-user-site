@@ -26,7 +26,7 @@ $site_title = $config->site_title ?? 'Site';
 if ($is_logged_in->isLoggedIn()) {
     // Logged in - show main site homepage
     $page = new \View\Template(config: $config);
-    $page->setTemplate("layout/admin_base.tpl.php");
+    $page->setTemplate("layout/base.tpl.php");
     $page->set("page_title", $site_title);
     $page->set("username", $is_logged_in->getLoggedInUsername());
     $page->set("is_admin", $is_logged_in->isAdmin());

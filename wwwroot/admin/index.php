@@ -33,7 +33,7 @@ if ($is_logged_in->isLoggedIn() && $is_logged_in->isAdmin()) {
     $inner = $page->grabTheGoods();
 
     $layout = new \View\Template(config: $config);
-    $layout->setTemplate("layout/admin_base.tpl.php");
+    $layout->setTemplate("layout/base.tpl.php");
     $layout->set("page_title", $site_title . " Admin");
     $layout->set("username", $is_logged_in->getLoggedInUsername());
     $layout->set("is_admin", true);

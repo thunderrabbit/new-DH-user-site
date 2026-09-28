@@ -206,7 +206,10 @@ globals the page uses (`$config`, `$is_logged_in`, `$mla_request`, `$mla_databas
 reported as possibly undefined, and the commit check blocks it.
 
 Then see `wwwroot/admin/index.php` with `templates/admin/index.tpl.php` and
-`templates/layout/admin_base.tpl.php` for the page → content → layout pattern.
+`templates/layout/base.tpl.php` for the page → content → layout pattern. Every page
+uses that one layout, and it draws the one menu in `templates/partials/menu.tpl.php`.
+Hand the layout `username` ('' when logged out) and `is_admin` so the menu can choose
+its links.
 
 ---
 
