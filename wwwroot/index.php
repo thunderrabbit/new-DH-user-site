@@ -43,7 +43,17 @@ if ($is_logged_in->isLoggedIn()) {
     $page->echoToScreen();
     exit;
 } else {
-    echo "<h1>" . htmlspecialchars($site_title) . "</h1>";
-    echo "<p><a href='/login/'>Click here to log in</a></p>";
+    // Logged out - same layout and menu, with a way in
+    $inner_page = new \View\Template(config: $config);
+    $inner_page->setTemplate("welcome.tpl.php");
+    $inner_page->set("site_title", $site_title);
+
+    $page = new \View\Template(config: $config);
+    $page->setTemplate("layout/base.tpl.php");
+    $page->set("page_title", $site_title);
+    $page->set("username", "");
+    $page->set("is_admin", false);
+    $page->set("page_content", $inner_page->grabTheGoods());
+    $page->echoToScreen();
     exit;
 }

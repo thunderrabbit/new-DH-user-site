@@ -128,4 +128,16 @@ class TemplateTest extends Unit
 
         $this->assertStringContainsString('href="/login/"', $layout->grabTheGoods());
     }
+
+    public function testWelcomeEscapesSiteTitle(): void
+    {
+        $page = $this->template();
+        $page->setTemplate("welcome.tpl.php");
+        $page->set('site_title', '<b>Games</b>');
+
+        $html = $page->grabTheGoods();
+
+        $this->assertStringContainsString('<h1>&lt;b&gt;Games&lt;/b&gt;</h1>', $html);
+        $this->assertStringContainsString('href="/login/"', $html);
+    }
 }
