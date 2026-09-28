@@ -6,6 +6,7 @@
         <title>Register</title>
         <meta name="title" content="Register"/>
         <meta name="description" content=""/>
+        <link rel="stylesheet" href="/css/theme.css">
         <link rel="stylesheet" href="/css/styles.css">
     </head>
     <body><!-- Register form area -->

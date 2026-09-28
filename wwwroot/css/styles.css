@@ -2,19 +2,23 @@ body {
     font-family: system-ui, sans-serif;
     margin: 0;
     padding: 0;
-    background-color: #eef7fc;
-    color: #222;
+    background-color: var(--bg);
+    color: var(--ink);
+}
+
+a {
+    color: var(--accent);
 }
 
 .NavBar {
-    background-color: #d0eaff;
+    background-color: var(--nav-bg);
     padding: 0.75em 1em;
-    border-bottom: 2px solid #b0d4ec;
+    border-bottom: 2px solid var(--nav-line);
     text-align: center;
 }
 
 .NavBar a {
-    color: #0366a8;
+    color: var(--accent);
     text-decoration: none;
     margin: 0 0.75em;
     font-weight: bold;
@@ -28,21 +32,21 @@ body {
     max-width: 900px;
     margin: 2em auto;
     padding: 1em;
-    background-color: #ffffff;
+    background-color: var(--panel);
     border-radius: 8px;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--shadow);
 }
 
 .PagePanel {
     margin-bottom: 1.5em;
     padding: 1em;
-    background-color: #f3faff;
-    border: 1px solid #cde5f6;
+    background-color: var(--card);
+    border: 1px solid var(--line);
     border-radius: 6px;
 }
 
 .fix {
     font-size: 0.85em;
     text-align: right;
-    color: #555;
+    color: var(--muted);
 }

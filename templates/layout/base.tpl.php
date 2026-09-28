@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content=""/>
     <title><?= htmlspecialchars($page_title ?? 'Site') ?></title>
+    <link rel="stylesheet" href="/css/theme.css">
     <link rel="stylesheet" href="/css/styles.css">
     <link rel="stylesheet" href="/css/menu.css">
 </head>

@@ -6,6 +6,7 @@
         <title>Login</title>
         <meta name="title" content="Login"/>
         <meta name="description" content=""/>
+        <link rel="stylesheet" href="/css/theme.css">
         <link rel="stylesheet" href="/css/styles.css">
     </head>
     <body><!-- Login form area -->
