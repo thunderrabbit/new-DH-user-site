@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-const SENTIMENTAL_VERSION = "One menu for every page";
+const SENTIMENTAL_VERSION = "Every device you sign in on";
 
 # write errors to screen
 ini_set('display_errors', 1);
