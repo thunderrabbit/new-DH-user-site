@@ -1,11 +1,9 @@
-# DreamHost caches .css for 30 days by default, which leaves visitors on old
-# styles after a deploy. Make browsers revalidate (cheap 304s) instead.
-<IfModule mod_expires.c>
-  ExpiresActive Off
-</IfModule>
-<IfModule mod_headers.c>
-  <FilesMatch "\.css$">
-    Header set Cache-Control "no-cache"
-    Header unset Expires
-  </FilesMatch>
+# Asset URLs carry a semver segment (classes/Version/) so a new version gets
+# past DreamHost's 30-day cache: /css/0.7.0/styles.css is /css/styles.css.
+# Any version is served the current file. The URL only has to change.
+<IfModule mod_rewrite.c>
+    RewriteEngine on
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^[0-9]+\.[0-9]+\.[0-9]+/(.+)$ $1 [L]
 </IfModule>

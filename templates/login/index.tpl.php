@@ -6,8 +6,8 @@
         <title>Login</title>
         <meta name="title" content="Login"/>
         <meta name="description" content=""/>
-        <link rel="stylesheet" href="/css/theme.css?v=2">
-        <link rel="stylesheet" href="/css/styles.css?v=2">
+        <link rel="stylesheet" href="/css/<?= \Version\Site::SEMVER ?>/theme.css">
+        <link rel="stylesheet" href="/css/<?= \Version\Site::SEMVER ?>/styles.css">
     </head>
     <body><!-- Login form area -->
         <div class="PageWrapper">
