@@ -24,6 +24,9 @@ class CookieRepository
     /** VARCHAR width of `cookies`.`user_agent`. */
     private const USER_AGENT_WIDTH = 255;
 
+    /** How stale `last_access` may get before touch() writes it again. */
+    private const TOUCH_EVERY_SECONDS = 3600;
+
     private \DateTimeImmutable $now;
 
     public function __construct(
@@ -111,6 +114,79 @@ class CookieRepository
         return $stmt->rowCount();
     }
 
+    /**
+     * Revoke one of a user's devices by row id. Scoped to the user, so a
+     * posted cookie_id belonging to someone else revokes nothing. True when a
+     * row went away.
+     */
+    public function revokeDevice(int $user_id, int $cookie_id): bool
+    {
+        $stmt = $this->di_pdo->prepare("DELETE FROM `cookies` WHERE `cookie_id` = ? AND `user_id` = ?");
+        $stmt->execute([$cookie_id, $user_id]);
+        return $stmt->rowCount() > 0;
+    }
+
+    /**
+     * Record that a cookie was just used, so the devices page can say when.
+     * Runs on every logged-in request, so it writes at most once an hour per
+     * cookie; the WHERE clause makes the other requests a no-op read.
+     */
+    public function touch(string $cookie_hash): void
+    {
+        $stmt = $this->di_pdo->prepare(
+            "UPDATE `cookies` SET `last_access` = ?
+             WHERE `cookie` = ? AND (`last_access` IS NULL OR `last_access` < ?)"
+        );
+        $stmt->execute([
+            $this->format($this->now),
+            $cookie_hash,
+            $this->format($this->now->modify('-' . self::TOUCH_EVERY_SECONDS . ' seconds')),
+        ]);
+    }
+
+    /**
+     * A user's live devices, most recently used first. The one whose hash is
+     * $current_cookie_hash (the browser asking) is flagged is_current.
+     *
+     * @return list<\Auth\Device>
+     */
+    public function listForUser(int $user_id, ?string $current_cookie_hash): array
+    {
+        $params = [$current_cookie_hash ?? '', $user_id, $this->format($this->now)];
+        $sql = "SELECT `cookie_id`, %s AS `user_agent`, `ip_address`, `created_at`, `last_access`, `expires_at`,
+                       (`cookie` = ?) AS `is_current`
+                FROM `cookies`
+                WHERE `user_id` = ? AND `expires_at` > ?
+                ORDER BY `last_access` DESC, `cookie_id` DESC";
+        try {
+            $stmt = $this->di_pdo->prepare(sprintf($sql, '`user_agent`'));
+            $stmt->execute($params);
+        } catch (\PDOException $e) {
+            if (!self::isMissingUserAgentColumn($e)) {
+                throw $e;
+            }
+            $stmt = $this->di_pdo->prepare(sprintf($sql, "''"));
+            $stmt->execute($params);
+        }
+
+        $devices = [];
+        foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+            $devices[] = new \Auth\Device(
+                cookie_id: self::int($row['cookie_id'] ?? 0),
+                user_agent: self::str($row['user_agent'] ?? ''),
+                ip_address: \Auth\IPBin::binaryToIp(self::str($row['ip_address'] ?? '')),
+                created_at: self::str($row['created_at'] ?? ''),
+                last_access: self::str($row['last_access'] ?? ''),
+                expires_at: self::str($row['expires_at'] ?? ''),
+                is_current: self::int($row['is_current'] ?? 0) === 1,
+            );
+        }
+        return $devices;
+    }
+
     public function purgeExpired(): void
     {
         $stmt = $this->di_pdo->prepare("DELETE FROM `cookies` WHERE `expires_at` <= ?");
@@ -120,6 +196,18 @@ class CookieRepository
     private function format(\DateTimeImmutable $when): string
     {
         return $when->format('Y-m-d H:i:s');
+    }
+
+    /** A PDO column value as a string; NULL and anything odd is ''. */
+    private static function str(mixed $value): string
+    {
+        return is_string($value) ? $value : '';
+    }
+
+    /** A PDO column value as an int (drivers differ on int vs numeric string). */
+    private static function int(mixed $value): int
+    {
+        return is_numeric($value) ? (int) $value : 0;
     }
 
     private static function isMissingUserAgentColumn(\PDOException $e): bool

@@ -155,4 +155,71 @@ class CookieRepositoryTest extends Unit
         $repo->issue(7, 'hash-a', self::IP, self::UA, self::DAY, self::PHONE);
         $this->assertSame(7, $repo->findUserId('hash-a', self::IP, self::UA));
     }
+
+    /**
+     * @param list<\Auth\Device> $devices
+     * @return list<string>
+     */
+    private function labels(array $devices): array
+    {
+        return array_map(fn(\Auth\Device $d) => $d->label(), $devices);
+    }
+
+    public function testListShowsOnlyThisUsersLiveDevicesMostRecentlyUsedFirst(): void
+    {
+        $this->at(0)->issue(7, 'phone', self::IP, self::UA, 30 * self::DAY, self::PHONE);
+        $this->at(0)->issue(7, 'expiring', self::IP, self::UA, self::DAY, 'Firefox/128.0');
+        $this->at(60)->issue(7, 'laptop', self::IP, self::UA, 30 * self::DAY, 'Mozilla/5.0 (Macintosh) Safari/605');
+        $this->at(0)->issue(9, 'someone-else', self::IP, self::UA, 30 * self::DAY, self::PHONE);
+        $this->at(2 * self::DAY)->touch('phone');
+
+        $devices = $this->at(2 * self::DAY)->listForUser(7, null);
+
+        $this->assertSame(['iPhone · Safari', 'Mac · Safari'], $this->labels($devices));
+        $this->assertSame('203.0.113.7', $devices[0]->ip_address);
+        $this->assertSame('2026-08-23 12:00:00', $devices[0]->last_access);
+        $this->assertSame('2026-09-20 12:00:00', $devices[0]->expires_at);
+    }
+
+    public function testListMarksTheCookieInHand(): void
+    {
+        $repo = $this->at(0);
+        $repo->issue(7, 'phone', self::IP, self::UA, self::DAY, self::PHONE);
+        $repo->issue(7, 'laptop', self::IP, self::UA, self::DAY, self::PHONE);
+
+        $current = array_map(fn(\Auth\Device $d) => $d->is_current, $repo->listForUser(7, 'laptop'));
+        sort($current);
+        $this->assertSame([false, true], $current);
+    }
+
+    public function testListBeforeTheUserAgentColumnExistsShowsUnknownDevices(): void
+    {
+        $repo = new \Database\CookieRepository($this->database(with_user_agent_column: false), $this->t0);
+        $repo->issue(7, 'hash-a', self::IP, self::UA, self::DAY, self::PHONE);
+        $this->assertSame(['Unknown device'], $this->labels($repo->listForUser(7, null)));
+    }
+
+    public function testRevokeDeviceOnlyTakesTheOwnersCookie(): void
+    {
+        $repo = $this->at(0);
+        $repo->issue(7, 'phone', self::IP, self::UA, self::DAY, self::PHONE);
+        $phone_id = $repo->listForUser(7, null)[0]->cookie_id;
+
+        $this->assertFalse($repo->revokeDevice(9, $phone_id), 'not user 9\'s device');
+        $this->assertSame(7, $repo->findUserId('phone', self::IP, self::UA));
+
+        $this->assertTrue($repo->revokeDevice(7, $phone_id));
+        $this->assertSame(0, $repo->findUserId('phone', self::IP, self::UA));
+    }
+
+    public function testTouchRecordsUseAtMostHourly(): void
+    {
+        $this->at(0)->issue(7, 'phone', self::IP, self::UA, 30 * self::DAY, self::PHONE);
+
+        $this->at(59 * 60)->touch('phone');
+        $this->assertSame('2026-08-21 12:00:00', $this->at(0)->listForUser(7, null)[0]->last_access, 'too soon');
+
+        $this->at(61 * 60)->touch('phone');
+        $this->assertSame('2026-08-21 13:01:00', $this->at(0)->listForUser(7, null)[0]->last_access);
+    }
 }
