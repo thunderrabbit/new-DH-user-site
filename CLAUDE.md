@@ -75,8 +75,9 @@ This is a minimalist PHP web application framework designed for DreamHost deploy
   old behaviour instead of locking a live site's users out.
 - IP address tracking via `Auth\IPBin` class
 - Login state managed by `Auth\IsLoggedIn`, in two halves that must stay apart:
-  - `resumeFromCookie()` runs on every request from `prepend.php`. Read-only apart from
-    expiring a cookie the DB no longer knows; it never looks at credentials.
+  - `resumeFromCookie()` runs on every request from `prepend.php`. Its only writes are
+    expiring a cookie the DB no longer knows and `CookieRepository::touch()`, which stamps
+    `last_access` at most hourly. It never looks at credentials.
   - `attemptPasswordLogin()` is called by `/login/index.php` on POST and nowhere else. A
     `username`/`pass` pair in any other form is just data.
   - Both end in the private `establishSession()` funnel (regenerate session id, drop the
@@ -92,6 +93,13 @@ This is a minimalist PHP web application framework designed for DreamHost deploy
     `expires_at` the lookup honours (the browser's expiry is not trusted), and issuing a cookie
     purges expired rows. `IsLoggedIn::revokeOtherSessions()` signs the user out everywhere but
     the current browser; **every password-change path must call it** (`/profile/` does).
+  - `/profile/devices/` lists the user's live cookies (`IsLoggedIn::devices()`, one
+    `Auth\Device` each, named by `Auth\DeviceLabel`) and signs out one
+    (`revokeDevice()`, scoped to the logged-in user) or all others. The current browser gets no
+    button there: `/logout/` revokes **every** session, not just this one.
+  - Device names come from `cookies.user_agent`, added by `02_devices/alter_cookies_user_agent.sql`
+    (applied from the admin dashboard). Until a site applies it, `CookieRepository` falls back
+    to the old columns: logins keep working and devices show as "Unknown device".
 
 ### CSRF
 

@@ -102,6 +102,7 @@ class TemplateTest extends Unit
 
         $this->assertStringContainsString('href="/login/"', $html);
         $this->assertStringNotContainsString('href="/logout/"', $html);
+        $this->assertStringNotContainsString('href="/profile/devices/"', $html);
         $this->assertStringNotContainsString('href="/admin/"', $html);
     }
 
@@ -110,6 +111,7 @@ class TemplateTest extends Unit
         $html = $this->menuFor('Rob', false);
 
         $this->assertStringContainsString('href="/profile/"', $html);
+        $this->assertStringContainsString('href="/profile/devices/"', $html);
         $this->assertStringContainsString('href="/logout/"', $html);
         $this->assertStringNotContainsString('href="/login/"', $html);
         $this->assertStringNotContainsString('href="/admin/"', $html);

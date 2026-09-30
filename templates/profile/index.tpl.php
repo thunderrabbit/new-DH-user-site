@@ -50,5 +50,6 @@
 
 <div class="PagePanel">
     <p>Logged in as: <strong><?= htmlspecialchars($username) ?></strong></p>
+    <p><a href="/profile/devices/">Signed-in devices</a></p>
     <a href="/logout/">Logout</a>
 </div>

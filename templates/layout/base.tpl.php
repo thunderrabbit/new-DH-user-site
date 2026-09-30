@@ -6,7 +6,7 @@
     <meta name="description" content=""/>
     <title><?= htmlspecialchars($page_title ?? 'Site') ?></title>
     <link rel="stylesheet" href="/css/theme.css?v=2">
-    <link rel="stylesheet" href="/css/styles.css?v=2">
+    <link rel="stylesheet" href="/css/styles.css?v=3">
     <link rel="stylesheet" href="/css/menu.css?v=2">
 </head>
 <body>

@@ -15,6 +15,7 @@ $menu_is_admin = $menu_logged_in && ($is_admin ?? false) === true;
         <div class="dropdown">
             <a href="/profile/">Profile ▾</a>
             <div class="dropdown-menu">
+                <a href="/profile/devices/">Devices</a>
                 <a href="/logout/">Logout</a>
             </div>
         </div>
