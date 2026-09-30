@@ -183,6 +183,19 @@ This leverages DreamHost's consistent `/home/username/domain.com/` path structur
 - Each **file** is tracked separately in `applied_DB_versions` as `<dir>/<filename>`. Renaming
   an already-applied file re-runs it, because that path string is the key.
 
+## Cache-busting assets
+
+DreamHost caches `.css`/`.js` for 30 days, so asset URLs carry a semver path segment
+instead of `?v=N`: `/css/<?= \Version\Site::SEMVER ?>/styles.css`. `wwwroot/css/.htaccess`
+strips a leading `N.N.N/` from any path that isn't a real file, so every version is served
+the current file. The URL only has to change.
+
+- `Version\Site` owns the site's `/css/` (and `/js/`, once there is one: copy the same
+  `.htaccess` into it). A class constant, not a define, because `register.php` runs without
+  `prepend.php`.
+- Bump `SEMVER` in a bubble's BEGIN commit, and again for any later change to those assets.
+- Never add `?v=` again.
+
 ## Common Development Tasks
 
 ### Local Development
