@@ -25,8 +25,9 @@ class IsLoggedIn
     }
 
     /**
-     * Who is this request from? Runs on EVERY request (prepend.php) and is
-     * read-only apart from expiring a cookie the database no longer knows.
+     * Who is this request from? Runs on EVERY request (prepend.php). Its only
+     * writes are expiring a cookie the database no longer knows and, at most
+     * hourly, stamping last_access for /profile/devices/.
      * It never looks at credentials: that is attemptPasswordLogin()'s job,
      * and only the login page calls that.
      */
@@ -47,6 +48,7 @@ class IsLoggedIn
             return;
         }
 
+        $this->di_cookies->touch(hash('sha256', $cookie));
         $this->who_is_logged_in = $found_user_id;
         $this->setUsernameOfLoggedInID($found_user_id);
     }
@@ -152,6 +154,7 @@ class IsLoggedIn
             ip_bin: \Auth\IPBin::ipToBinary(self::serverString('REMOTE_ADDR')),
             user_agent_md5: md5(self::serverString('HTTP_USER_AGENT')),
             lifetime_seconds: $this->di_config->cookie_lifetime,
+            user_agent: self::serverString('HTTP_USER_AGENT'),
         );
 
         $cookie_options = \Auth\CookieOptions::build(
@@ -227,9 +230,41 @@ class IsLoggedIn
         if ($this->who_is_logged_in <= 0) {
             return 0;
         }
+        return $this->di_cookies->revokeAllForUser($this->who_is_logged_in, $this->presentedCookieHash());
+    }
+
+    /**
+     * Every browser this user is signed in on, this one flagged is_current.
+     *
+     * @return list<Device>
+     */
+    public function devices(): array
+    {
+        if ($this->who_is_logged_in <= 0) {
+            return [];
+        }
+        return $this->di_cookies->listForUser($this->who_is_logged_in, $this->presentedCookieHash());
+    }
+
+    /**
+     * Sign one of this user's devices out. A cookie_id that is not theirs
+     * revokes nothing. Returns whether a device went away.
+     */
+    public function revokeDevice(int $cookie_id): bool
+    {
+        if ($this->who_is_logged_in <= 0) {
+            return false;
+        }
+        return $this->di_cookies->revokeDevice($this->who_is_logged_in, $cookie_id);
+    }
+
+    /**
+     * SHA-256 of the remember-me cookie this browser sent, or null without one.
+     */
+    private function presentedCookieHash(): ?string
+    {
         $presented = $_COOKIE[$this->di_config->cookie_name] ?? '';
-        $keep = is_string($presented) && $presented !== '' ? hash('sha256', $presented) : null;
-        return $this->di_cookies->revokeAllForUser($this->who_is_logged_in, $keep);
+        return is_string($presented) && $presented !== '' ? hash('sha256', $presented) : null;
     }
 
     public function logout(): void
