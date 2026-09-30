@@ -26,9 +26,10 @@ $site_title = $config->site_title ?? 'Site';
 if ($is_logged_in->isLoggedIn()) {
     // Logged in - show main site homepage
     $page = new \View\Template(config: $config);
-    $page->setTemplate("layout/admin_base.tpl.php");
+    $page->setTemplate("layout/base.tpl.php");
     $page->set("page_title", $site_title);
     $page->set("username", $is_logged_in->getLoggedInUsername());
+    $page->set("is_admin", $is_logged_in->isAdmin());
     $page->set("site_version", SENTIMENTAL_VERSION);
 
     // Get the inner content
@@ -42,7 +43,17 @@ if ($is_logged_in->isLoggedIn()) {
     $page->echoToScreen();
     exit;
 } else {
-    echo "<h1>" . htmlspecialchars($site_title) . "</h1>";
-    echo "<p><a href='/login/'>Click here to log in</a></p>";
+    // Logged out - same layout and menu, with a way in
+    $inner_page = new \View\Template(config: $config);
+    $inner_page->setTemplate("welcome.tpl.php");
+    $inner_page->set("site_title", $site_title);
+
+    $page = new \View\Template(config: $config);
+    $page->setTemplate("layout/base.tpl.php");
+    $page->set("page_title", $site_title);
+    $page->set("username", "");
+    $page->set("is_admin", false);
+    $page->set("page_content", $inner_page->grabTheGoods());
+    $page->echoToScreen();
     exit;
 }

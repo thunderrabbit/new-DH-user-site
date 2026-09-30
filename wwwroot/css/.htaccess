@@ -1,0 +1,11 @@
+# DreamHost caches .css for 30 days by default, which leaves visitors on old
+# styles after a deploy. Make browsers revalidate (cheap 304s) instead.
+<IfModule mod_expires.c>
+  ExpiresActive Off
+</IfModule>
+<IfModule mod_headers.c>
+  <FilesMatch "\.css$">
+    Header set Cache-Control "no-cache"
+    Header unset Expires
+  </FilesMatch>
+</IfModule>

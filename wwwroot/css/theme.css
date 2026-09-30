@@ -1,0 +1,17 @@
+/*
+ * The site's colours, named once. styles.css and menu.css read these, so a
+ * site restyles itself by changing this file alone.
+ */
+:root {
+    --bg: #eef7fc;          /* page background */
+    --panel: #ffffff;       /* the page's main box */
+    --card: #f3faff;        /* panels inside it */
+    --card-hover: #f3faff;  /* a highlighted row, e.g. in the menu's dropdown */
+    --ink: #222222;         /* body text */
+    --muted: #555555;       /* secondary text */
+    --line: #cde5f6;        /* borders */
+    --accent: #0366a8;      /* links */
+    --nav-bg: #d0eaff;      /* the menu bar */
+    --nav-line: #b0d4ec;    /* the menu bar's bottom edge */
+    --shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}

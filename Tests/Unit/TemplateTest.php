@@ -85,4 +85,59 @@ class TemplateTest extends Unit
 
         $this->assertStringContainsString('<title>Site</title>', $layout->grabTheGoods());
     }
+
+    private function menuFor(string $username, bool $is_admin): string
+    {
+        $layout = $this->template();
+        $layout->setTemplate("layout/base.tpl.php");
+        $layout->set('username', $username);
+        $layout->set('is_admin', $is_admin);
+        $layout->set('page_content', 'hello');
+        return $layout->grabTheGoods();
+    }
+
+    public function testMenuOffersLoginWhenLoggedOut(): void
+    {
+        $html = $this->menuFor('', false);
+
+        $this->assertStringContainsString('href="/login/"', $html);
+        $this->assertStringNotContainsString('href="/logout/"', $html);
+        $this->assertStringNotContainsString('href="/admin/"', $html);
+    }
+
+    public function testMenuOffersProfileAndLogoutWhenLoggedIn(): void
+    {
+        $html = $this->menuFor('Rob', false);
+
+        $this->assertStringContainsString('href="/profile/"', $html);
+        $this->assertStringContainsString('href="/logout/"', $html);
+        $this->assertStringNotContainsString('href="/login/"', $html);
+        $this->assertStringNotContainsString('href="/admin/"', $html);
+    }
+
+    public function testMenuOffersAdminOnlyToAdmins(): void
+    {
+        $this->assertStringContainsString('href="/admin/"', $this->menuFor('Rob', true));
+    }
+
+    public function testMenuDefaultsToLoggedOut(): void
+    {
+        $layout = $this->template();
+        $layout->setTemplate("layout/base.tpl.php");
+        $layout->set('page_content', 'hello');
+
+        $this->assertStringContainsString('href="/login/"', $layout->grabTheGoods());
+    }
+
+    public function testWelcomeEscapesSiteTitle(): void
+    {
+        $page = $this->template();
+        $page->setTemplate("welcome.tpl.php");
+        $page->set('site_title', '<b>Games</b>');
+
+        $html = $page->grabTheGoods();
+
+        $this->assertStringContainsString('<h1>&lt;b&gt;Games&lt;/b&gt;</h1>', $html);
+        $this->assertStringContainsString('href="/login/"', $html);
+    }
 }

@@ -1,5 +1,30 @@
+/*
+ * The menu styles itself completely: its own font, size, spacing and colours,
+ * so it looks the same on every page, including pages with their own
+ * stylesheets. Colours come from theme.css; the fallbacks cover a page that
+ * doesn't load it.
+ */
 .NavBar {
-    font-family: system-ui, sans-serif;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0.75em 1em;
+    background-color: var(--nav-bg, #d0eaff);
+    border-bottom: 2px solid var(--nav-line, #b0d4ec);
+    color: var(--muted, #555555);
+    font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+    text-align: center;
+}
+
+.NavBar a {
+    color: var(--accent, #0366a8);
+    text-decoration: none;
+    margin: 0 0.75em;
+    font-weight: bold;
+}
+
+.NavBar a:hover,
+.NavBar a:focus-visible {
+    text-decoration: underline;
 }
 
 .NavBar .dropdown {
@@ -12,27 +37,29 @@
     position: absolute;
     top: 100%;
     left: 0;
-    background: #ffffff;
-    border: 1px solid #cde5f6;
+    background: var(--panel, #ffffff);
+    border: 1px solid var(--line, #cde5f6);
     padding: 0.5em 0;
     white-space: nowrap;
+    text-align: left;
     z-index: 100;
     border-radius: 6px;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--shadow, 0 2px 6px rgba(0, 0, 0, 0.1));
 }
 
 .NavBar .dropdown-menu a {
     display: block;
+    margin: 0;
     padding: 0.25em 1em;
-    text-decoration: none;
-    color: #0366a8;
 }
 
-.NavBar .dropdown-menu a:hover {
-    background: #f3faff;
-    text-decoration: underline;
+.NavBar .dropdown-menu a:hover,
+.NavBar .dropdown-menu a:focus-visible {
+    background: var(--card-hover, #f3faff);
 }
 
-.NavBar .dropdown:hover .dropdown-menu {
+/* Keyboard users reach Logout by tabbing into the dropdown. */
+.NavBar .dropdown:hover .dropdown-menu,
+.NavBar .dropdown:focus-within .dropdown-menu {
     display: block;
 }

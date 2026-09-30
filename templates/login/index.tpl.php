@@ -6,7 +6,8 @@
         <title>Login</title>
         <meta name="title" content="Login"/>
         <meta name="description" content=""/>
-        <link rel="stylesheet" href="/css/styles.css">
+        <link rel="stylesheet" href="/css/theme.css?v=2">
+        <link rel="stylesheet" href="/css/styles.css?v=2">
     </head>
     <body><!-- Login form area -->
         <div class="PageWrapper">
