@@ -15,14 +15,25 @@ class CookieRepositoryTest extends Unit
     private const IP = "\xCB\x00\x71\x07";   // 203.0.113.7 as inet_pton()
     private const UA = 'd41d8cd98f00b204e9800998ecf8427e';
 
+    private const PHONE = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) Safari/604.1';
+
     private \PDO $pdo;
     private \DateTimeImmutable $t0;
 
     protected function _before(): void
     {
-        $this->pdo = new \PDO('sqlite::memory:');
-        $this->pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
-        $this->pdo->exec(
+        $this->pdo = $this->database(with_user_agent_column: true);
+        $this->t0 = new \DateTimeImmutable('2026-08-21 12:00:00');
+    }
+
+    /**
+     * The cookies table, with or without 02_devices/alter_cookies_user_agent.sql applied.
+     */
+    private function database(bool $with_user_agent_column): \PDO
+    {
+        $pdo = new \PDO('sqlite::memory:');
+        $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+        $pdo->exec(
             "CREATE TABLE cookies (
                 cookie_id INTEGER PRIMARY KEY AUTOINCREMENT,
                 cookie TEXT NOT NULL UNIQUE,
@@ -31,10 +42,11 @@ class CookieRepositoryTest extends Unit
                 last_access TEXT,
                 expires_at TEXT NOT NULL,
                 ip_address BLOB,
-                user_agent_md5 TEXT
-            )"
+                user_agent_md5 TEXT"
+            . ($with_user_agent_column ? ", user_agent TEXT" : "")
+            . ")"
         );
-        $this->t0 = new \DateTimeImmutable('2026-08-21 12:00:00');
+        return $pdo;
     }
 
     private function at(int $seconds_after_t0): \Database\CookieRepository
@@ -120,5 +132,27 @@ class CookieRepositoryTest extends Unit
         $repo->issue(7, 'laptop', self::IP, self::UA, self::DAY);
         $this->assertSame(2, $repo->revokeAllForUser(7));
         $this->assertSame(0, $this->rowCount());
+    }
+
+    public function testIssueRecordsTheReadableUserAgent(): void
+    {
+        $this->at(0)->issue(7, 'hash-a', self::IP, self::UA, self::DAY, self::PHONE);
+        $stmt = $this->pdo->query("SELECT user_agent FROM cookies");
+        $this->assertSame(self::PHONE, $stmt === false ? false : $stmt->fetchColumn());
+    }
+
+    public function testIssueCutsAnOverlongUserAgentToTheColumnWidth(): void
+    {
+        $this->at(0)->issue(7, 'hash-a', self::IP, self::UA, self::DAY, str_repeat('x', 300));
+        $stmt = $this->pdo->query("SELECT user_agent FROM cookies");
+        $stored = $stmt === false ? false : $stmt->fetchColumn();
+        $this->assertSame(255, is_string($stored) ? strlen($stored) : -1);
+    }
+
+    public function testLoginStillWorksBeforeTheUserAgentColumnExists(): void
+    {
+        $repo = new \Database\CookieRepository($this->database(with_user_agent_column: false), $this->t0);
+        $repo->issue(7, 'hash-a', self::IP, self::UA, self::DAY, self::PHONE);
+        $this->assertSame(7, $repo->findUserId('hash-a', self::IP, self::UA));
     }
 }

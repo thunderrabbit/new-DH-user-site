@@ -18,6 +18,12 @@ namespace Database;
  */
 class CookieRepository
 {
+    /** MySQL: unknown column. */
+    private const SQLSTATE_NO_COLUMN = '42S22';
+
+    /** VARCHAR width of `cookies`.`user_agent`. */
+    private const USER_AGENT_WIDTH = 255;
+
     private \DateTimeImmutable $now;
 
     public function __construct(
@@ -33,19 +39,36 @@ class CookieRepository
         string $ip_bin,
         string $user_agent_md5,
         int $lifetime_seconds,
+        string $user_agent = '',
     ): void {
-        $stmt = $this->di_pdo->prepare(
-            "INSERT INTO `cookies` (`user_id`, `cookie`, `last_access`, `expires_at`, `user_agent_md5`, `ip_address`)
-             VALUES (?, ?, ?, ?, ?, ?)"
-        );
-        $stmt->execute([
+        $params = [
             $user_id,
             $cookie_hash,
             $this->format($this->now),
             $this->format($this->now->modify("+{$lifetime_seconds} seconds")),
             $user_agent_md5,
             $ip_bin,
-        ]);
+        ];
+        try {
+            $stmt = $this->di_pdo->prepare(
+                "INSERT INTO `cookies`
+                   (`user_id`, `cookie`, `last_access`, `expires_at`, `user_agent_md5`, `ip_address`, `user_agent`)
+                 VALUES (?, ?, ?, ?, ?, ?, ?)"
+            );
+            $stmt->execute([...$params, substr($user_agent, 0, self::USER_AGENT_WIDTH)]);
+        } catch (\PDOException $e) {
+            // A site that has not applied 02_devices yet must still let people
+            // log in. Its devices page just cannot name the browser.
+            if (!self::isMissingUserAgentColumn($e)) {
+                throw $e;
+            }
+            $stmt = $this->di_pdo->prepare(
+                "INSERT INTO `cookies`
+                   (`user_id`, `cookie`, `last_access`, `expires_at`, `user_agent_md5`, `ip_address`)
+                 VALUES (?, ?, ?, ?, ?, ?)"
+            );
+            $stmt->execute($params);
+        }
         $this->purgeExpired();
     }
 
@@ -97,5 +120,14 @@ class CookieRepository
     private function format(\DateTimeImmutable $when): string
     {
         return $when->format('Y-m-d H:i:s');
+    }
+
+    private static function isMissingUserAgentColumn(\PDOException $e): bool
+    {
+        // MySQL reports SQLSTATE 42S22 (unknown column). SQLite says "has no
+        // column named" on INSERT and "no such column" on SELECT, with HY000.
+        return $e->getCode() === self::SQLSTATE_NO_COLUMN
+            || str_contains($e->getMessage(), 'no column named user_agent')
+            || str_contains($e->getMessage(), 'no such column: user_agent');
     }
 }
