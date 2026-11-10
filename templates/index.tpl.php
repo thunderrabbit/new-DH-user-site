@@ -7,7 +7,9 @@
 <div class="PagePanel">
     <h2>Quick Actions</h2>
     <ul>
-        <li><a href="/admin/">Admin Dashboard</a></li>
+        <?php if (!empty($is_admin)): ?>
+            <li><a href="/admin/">Admin Dashboard</a></li>
+        <?php endif; ?>
         <li><a href="/profile/">Profile Settings</a></li>
     </ul>
 </div>
