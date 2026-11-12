@@ -15,6 +15,7 @@ class CookieRepositoryTest extends Unit
     private const string IP = "\xCB\x00\x71\x07";   // 203.0.113.7 as inet_pton()
     private const string UA = 'd41d8cd98f00b204e9800998ecf8427e';
 
+    private const string MAC = 'Mozilla/5.0 (Macintosh) Safari/605';
     private const string PHONE = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) Safari/604.1';
 
     private \PDO $pdo;
@@ -33,6 +34,12 @@ class CookieRepositoryTest extends Unit
     {
         $pdo = new \PDO('sqlite::memory:');
         $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+        $this->createCookies($pdo, $with_user_agent_column);
+        return $pdo;
+    }
+
+    private function createCookies(\PDO $pdo, bool $with_user_agent_column): void
+    {
         $pdo->exec(
             "CREATE TABLE cookies (
                 cookie_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -46,7 +53,6 @@ class CookieRepositoryTest extends Unit
             . ($with_user_agent_column ? ", user_agent TEXT" : "")
             . ")"
         );
-        return $pdo;
     }
 
     private function at(int $seconds_after_t0): \Database\CookieRepository
@@ -175,7 +181,7 @@ class CookieRepositoryTest extends Unit
     {
         $this->at(0)->issue(7, 'phone', self::IP, self::UA, 30 * self::DAY, self::PHONE);
         $this->at(0)->issue(7, 'expiring', self::IP, self::UA, self::DAY, 'Firefox/128.0');
-        $this->at(60)->issue(7, 'laptop', self::IP, self::UA, 30 * self::DAY, 'Mozilla/5.0 (Macintosh) Safari/605');
+        $this->at(60)->issue(7, 'laptop', self::IP, self::UA, 30 * self::DAY, self::MAC);
         $this->at(0)->issue(9, 'someone-else', self::IP, self::UA, 30 * self::DAY, self::PHONE);
         $this->at(2 * self::DAY)->touch('phone');
 
@@ -191,11 +197,75 @@ class CookieRepositoryTest extends Unit
     {
         $repo = $this->at(0);
         $repo->issue(7, 'phone', self::IP, self::UA, self::DAY, self::PHONE);
-        $repo->issue(7, 'laptop', self::IP, self::UA, self::DAY, self::PHONE);
+        $repo->issue(7, 'laptop', self::IP, self::UA, self::DAY, self::MAC);
 
-        $current = array_map(fn(\Auth\Device $d): bool => $d->is_current, $repo->listForUser(7, 'laptop'));
-        sort($current);
-        $this->assertSame([false, true], $current);
+        $current = [];
+        foreach ($repo->listForUser(7, 'laptop') as $device) {
+            $current[$device->label()] = $device->is_current;
+        }
+        $this->assertSame(['Mac · Safari' => true, 'iPhone · Safari' => false], $current);
+    }
+
+    public function testListCarriesWhenTheDeviceSignedIn(): void
+    {
+        $this->at(0)->issue(7, 'phone', self::IP, self::UA, self::DAY, self::PHONE);
+        $this->pdo->exec("UPDATE cookies SET created_at = '2026-08-20 09:30:00'");
+
+        $this->assertSame('2026-08-20 09:30:00', $this->at(0)->listForUser(7, null)[0]->created_at);
+    }
+
+    public function testNumbersArrivingAsStringsAreStillNumbers(): void
+    {
+        // Drivers differ: MySQL without native prepares hands integers back
+        // as numeric strings. Under strict_types a string where an int is
+        // declared is a TypeError, on the login path.
+        $this->pdo->setAttribute(\PDO::ATTR_STRINGIFY_FETCHES, true);
+        $repo = $this->at(0);
+        $repo->issue(7, 'phone', self::IP, self::UA, self::DAY, self::PHONE);
+
+        $this->assertSame(7, $repo->findUserId('phone', self::UA));
+        $device = $repo->listForUser(7, 'phone')[0];
+        $this->assertSame(1, $device->cookie_id);
+        $this->assertTrue($device->is_current);
+    }
+
+    public function testIssueFallsBackOnMysqlsUnknownColumnError(): void
+    {
+        // Production is MySQL, which reports the missing column by SQLSTATE
+        // and in its own words; SQLite's wording is covered above.
+        $pdo = new FailingOncePdo(FailingOncePdo::sqlState(
+            '42S22',
+            "SQLSTATE[42S22]: Column not found: 1054 Unknown column 'user_agent' in 'field list'"
+        ));
+        $this->createCookies($pdo, with_user_agent_column: false);
+        $repo = new \Database\CookieRepository($pdo, $this->t0);
+
+        $repo->issue(7, 'hash-a', self::IP, self::UA, self::DAY, self::PHONE);
+
+        $this->assertSame(7, $repo->findUserId('hash-a', self::UA));
+    }
+
+    public function testIssueDoesNotRetryAfterAnyOtherDatabaseError(): void
+    {
+        // Only the missing column earns the fallback INSERT. Anything else
+        // must surface, not be papered over by a second attempt that works.
+        $pdo = new FailingOncePdo(new \PDOException('SQLSTATE[HY000]: General error: 10 disk I/O error'));
+        $this->createCookies($pdo, with_user_agent_column: true);
+        $repo = new \Database\CookieRepository($pdo, $this->t0);
+
+        $this->expectException(\PDOException::class);
+        $this->expectExceptionMessage('disk I/O error');
+        $repo->issue(7, 'hash-a', self::IP, self::UA, self::DAY, self::PHONE);
+    }
+
+    public function testListDoesNotRetryAfterAnyOtherDatabaseError(): void
+    {
+        $pdo = new FailingOncePdo(new \PDOException('SQLSTATE[HY000]: General error: 10 disk I/O error'));
+        $this->createCookies($pdo, with_user_agent_column: true);
+
+        $this->expectException(\PDOException::class);
+        $this->expectExceptionMessage('disk I/O error');
+        new \Database\CookieRepository($pdo, $this->t0)->listForUser(7, null);
     }
 
     public function testListBeforeTheUserAgentColumnExistsShowsUnknownDevices(): void
