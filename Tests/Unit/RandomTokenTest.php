@@ -73,4 +73,18 @@ class RandomTokenTest extends Unit
         $unique = array_unique($results);
         $this->assertCount(10, $unique, 'All 10 random strings should be unique');
     }
+
+    public function testEveryCharacterIsDrawnAboutEquallyOften(): void
+    {
+        // A two-letter alphabet makes an off-by-one in the pick visible: it
+        // would drop a letter, shorten the string, or favour one of the two.
+        // 2000 fair draws land within 800..1200 of each letter, short of a
+        // nine-sigma fluke; a pick that favours one letter gives about 667.
+        $result = $this->token->generate(2000, 'ab');
+
+        $this->assertSame(2000, strlen($result));
+        $this->assertSame(2000, substr_count($result, 'a') + substr_count($result, 'b'));
+        $this->assertGreaterThan(800, substr_count($result, 'a'));
+        $this->assertLessThan(1200, substr_count($result, 'a'));
+    }
 }
