@@ -139,4 +139,75 @@ class LoginThrottleTest extends Unit
         $t->clearFailures('rob');
         $this->assertFalse($t->isThrottled('rob', '203.0.113.7'));
     }
+
+    public function testMysqlsMissingTableErrorAlsoMeansNoThrottle(): void
+    {
+        // Production is MySQL, which reports the missing table by SQLSTATE and
+        // with its own wording. SQLite's wording is what the test above covers.
+        $pdo = new FailingOncePdo(FailingOncePdo::sqlState(
+            '42S02',
+            "SQLSTATE[42S02]: Base table or view not found: 1146 Table 'site.login_attempts' doesn't exist"
+        ));
+        $pdo->exec("CREATE TABLE login_attempts (username TEXT, ip_address BLOB, attempted_at TEXT)");
+
+        $this->assertFalse(new \Auth\LoginThrottle($pdo, $this->t0)->isThrottled('rob', '203.0.113.7'));
+    }
+
+    public function testAnyOtherDatabaseErrorIsNotMistakenForAMissingTable(): void
+    {
+        // "No table" quietly means no throttle. A table that is there but
+        // broken must not: that would switch the throttle off unnoticed.
+        $this->pdo->exec("DROP TABLE login_attempts");
+        $this->pdo->exec("CREATE TABLE login_attempts (ip_address BLOB, attempted_at TEXT)");
+
+        $this->expectException(\PDOException::class);
+        $this->expectExceptionMessage('no such column: username');
+        $this->at(0)->isThrottled('rob', '203.0.113.7');
+    }
+
+    public function testAnUnknownIpIsNeverAnIpBucket(): void
+    {
+        // recordFailure() stores an unknown IP as NULL, but rows with an empty
+        // address (written by hand, or by older code) must not add up to a
+        // per-IP lockout of everyone whose address cannot be read.
+        $stmt = $this->pdo->prepare(
+            "INSERT INTO login_attempts (username, ip_address, attempted_at) VALUES (?, '', '2026-08-21 11:59:00')"
+        );
+        for ($i = 0; $i < \Auth\LoginThrottle::MAX_FAILURES_PER_IP; $i++) {
+            $stmt->execute(["guess$i"]);
+        }
+
+        $this->assertFalse($this->at(0)->isThrottled('someone-new', ''));
+    }
+
+    private function storedUsername(): string
+    {
+        $stmt = $this->pdo->query("SELECT username FROM login_attempts");
+        $username = $stmt === false ? false : $stmt->fetchColumn();
+        if (!is_string($username)) {
+            $this->fail('no login_attempts row to read');
+        }
+        return $username;
+    }
+
+    public function testUsernameIsStoredTrimmedAndLowerCased(): void
+    {
+        $this->at(0)->recordFailure("  Rob\n", '203.0.113.7');
+        $this->assertSame('rob', $this->storedUsername());
+    }
+
+    public function testUsernameIsLowerCasedBeyondAscii(): void
+    {
+        // MySQL's LOWER() folds É to é, so the count has to as well.
+        $this->at(0)->recordFailure('ÉRIC', '203.0.113.7');
+        $this->assertSame('éric', $this->storedUsername());
+    }
+
+    public function testOverlongUsernameIsCutToTheColumnWidthInCharacters(): void
+    {
+        // `username` is VARCHAR(255): 255 characters, not bytes. A longer
+        // value must be cut, not left to fail the INSERT on a strict MySQL.
+        $this->at(0)->recordFailure(str_repeat('é', 300), '203.0.113.7');
+        $this->assertSame(str_repeat('é', 255), $this->storedUsername());
+    }
 }

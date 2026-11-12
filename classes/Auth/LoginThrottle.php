@@ -113,6 +113,9 @@ class LoginThrottle
             return (int) $stmt->fetchColumn();
         } catch (\PDOException $e) {
             if ($this->isMissingTable($e)) {
+                // No table means no throttle, and any count under both limits
+                // says that. 0 is the honest one; no test can tell it from 1.
+                // @infection-ignore-all
                 return 0;
             }
             throw $e;

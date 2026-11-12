@@ -1,7 +1,7 @@
 # Infection mutation testing: trial in the template repo
 
 Date: 2026-11-12
-Status: design, awaiting Rob's approval
+Status: approved by Rob 2026-11-12, built the same day; see "Trial result" at the end
 
 ## Why
 
@@ -295,3 +295,147 @@ Rob decides rollout and blocking from that.
 - Thread count, and any Infection options that make it faster.
 - How the two pieces are split into commits and bubbles, under Rob's
   sizing rules.
+
+## Trial result
+
+Written 2026-11-12, after both pieces were built.
+
+### Can it run with our tooling?
+
+Yes, with no change to how tests are written. It runs in the same runner
+image, read-only and with no network, on the existing Codeception Unit
+suite. What it needed:
+
+- pcov in the runner image. It had to ship switched off: left on, it
+  slowed phpcs from 0.39 s to 0.55 s and PHPStan from 2.33 s to 2.87 s.
+  The wrapper and the hook turn it on for their own run.
+- `run-infection.sh` in standards-mcp (commits `b635d27`, `1997fc4` on its
+  `infection` branch).
+- Here: two dev packages, a composer `allow-plugins` entry, a 25-line
+  `infection.json5`, and about 60 lines in `.githooks/pre-commit`.
+
+The 2 composer advisories are in `phpunit/phpunit` and `symfony/yaml`.
+Both were there before Infection was added; neither comes from it.
+
+### How long did setup take?
+
+Piece 1 ran from 18:56 to 19:02 AEDT, about 6 minutes of agent time, on
+top of the 15-minute spike that found the two snags (the bootstrap entry
+and the coverage driver). On another repo already using the runner image
+it is the same handful of files, plus a rebuild of that repo's PHP image.
+
+### Per-commit time, measured through the hook
+
+| Staged | Without Infection | With Infection |
+|---|---|---|
+| No class file | 0.05 s | 0.05 s (Infection does not start) |
+| `SchemaPath.php` (24 mutants) | 2.7 s | 3.7 s |
+| `LoginThrottle.php` (42 mutants) | 2.7 s | 4.0 s |
+
+Each figure is the middle of three runs of `.githooks/pre-commit` with
+that one file staged, taken at the end of piece 2; "without" is the same
+run with `vendor/bin/infection` moved aside. So 1.0 to 1.3 seconds
+extra, inside the budget.
+
+A whole-repo run through the wrapper is 4 seconds (218 mutants). With
+PHPStan judging mutants it is 6.6 seconds now that nothing survives; it
+was 17 seconds while the 33 survivors existed, because PHPStan is only
+asked about mutants the tests let through.
+
+### The survivor tally
+
+A whole-repo run found 33 survivors (the spike's 35, less the two
+visibility mutants switched off in piece 1). Piece 2 ran from 19:02 to
+19:07 AEDT, about 5 minutes of agent time, and ended with 218 mutants
+generated and 218 killed. Four lines carry an ignore, so their mutants
+are not generated at all.
+
+| Outcome | Count |
+|---|---|
+| Killed by a new or tightened test | 25 |
+| Code simplified | 4 |
+| Ignored on the line, with a reason | 4 |
+| Mutator switched off (piece 2) | 0 |
+
+Of the 25 killed, about 17 pointed at something that mattered and 8 were
+minor (username trimming, the 255-character cut-off, an early return).
+One of the minor ones is borderline: `testAnUnknownIpIsNeverAnIpBucket`
+inserts rows with an empty address, which the code itself never writes.
+An ignore with a reason would have been as defensible as that test.
+
+The ones that mattered most:
+
+- **A test that could not fail.** `testListMarksTheCookieInHand` sorted
+  its booleans before comparing them, so it passed with the "current
+  device" flag on the wrong device.
+- **A check that could be inverted.** `LoginThrottle::isMissingTable()`
+  could be flipped so that every database error read as "no table, so no
+  throttle". The same held for the missing-column check in
+  `CookieRepository`.
+- **The traversal guard.** Either regex anchor in `SchemaPath` could be
+  removed, and the containment base could shrink from `db_schemas` to the
+  app root.
+- **Production's branch was untested.** The MySQL SQLSTATE branches of
+  both "missing table / column" checks had no test at all, because the
+  suite runs on SQLite. `Tests/Unit/FailingOncePdo.php` now feeds them
+  MySQL's own errors.
+- **Off-by-ones in the token alphabet pick**, which would drop a
+  character from every token or bias them.
+
+The 4 simplified were survivors on `?? 0` defaults for row columns that
+are always present; the commit dropped all seven `??` defaults there
+(`619c244`). The 4 ignored are two fallback values no test can
+reach or distinguish (`3d5bdd0`, `c51f7c5`). That is 8 of 33, about a
+quarter, that were not test gaps.
+
+Three things turned up while reading the code that Infection did not
+flag and this trial did not change:
+
+- `SchemaPath` checks containment with `str_starts_with($realTarget,
+  $realBase)` and no trailing separator, so a sibling directory named
+  `db_schemas_something` would pass. Reachable only through a symlink.
+- Its regex ends in `$`, which also accepts a trailing newline. Harmless
+  today, because `realpath()` then fails.
+- Its final `file_exists()` check cannot be reached: `realpath()` has
+  already returned false for a missing file, so a missing migration is
+  reported as "escapes base directory".
+
+### Recommendation: print-only or blocking?
+
+Stay print-only here for now, and revisit after a few weeks of ordinary
+commits. Reasons:
+
+- With the repo at zero survivors, anything the hook prints is new, so
+  it is hard to miss even without blocking.
+- A quarter of this repo's survivors were not test gaps. Blocking would
+  have forced an ignore comment or a code change for each before any
+  commit touching those files.
+- Infection aborts when a unit test is red, and the hook does not run
+  the Unit suite. A blocking hook would need to decide what a red suite
+  means first.
+
+If it does become blocking, block on survivors only, never on Infection
+failing to run.
+
+### What would be different on `abb`
+
+- **Reach.** Infection mutates only class methods and closures.
+  `abb`'s 579 PHP files are mostly `wwwroot/` scripts, and last night's
+  bugs were partly in `wwwroot/system/units/unit.php`. That code gets no
+  mutants until its logic moves into classes with unit tests.
+- **Image.** `abb` is on the php8.3 runner image, which has not been
+  rebuilt with pcov.
+- **Speed.** Cost is roughly mutants times the time of the tests that
+  cover them. This repo's whole suite runs in under 0.1 s; `abb` has 85
+  Unit test files and far more code, so both the whole-repo run and the
+  per-commit run will be slower by an amount not yet measured.
+- **Starting point.** Expect hundreds of existing survivors, not 33. The
+  hook should report per changed line there, not per changed file, or
+  every commit re-prints a file's old survivors. That needs git inside
+  the runner or line filtering in the hook, and was not built here.
+- **PHPStan.** `abb` is at levels 0 and 1 with baselines, so PHPStan as a
+  second judge of mutants would catch little.
+
+The suggested first step on `abb` is a whole-repo `run-infection.sh`
+with `--with-uncovered`, print-only and outside the hook, to see the
+size of the list before deciding anything.

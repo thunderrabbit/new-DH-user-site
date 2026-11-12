@@ -176,13 +176,13 @@ class CookieRepository
                 continue;
             }
             $devices[] = new \Auth\Device(
-                cookie_id: self::int($row['cookie_id'] ?? 0),
-                user_agent: self::str($row['user_agent'] ?? ''),
-                ip_address: \Auth\IPBin::binaryToIp(self::str($row['ip_address'] ?? '')),
-                created_at: self::str($row['created_at'] ?? ''),
-                last_access: self::str($row['last_access'] ?? ''),
-                expires_at: self::str($row['expires_at'] ?? ''),
-                is_current: self::int($row['is_current'] ?? 0) === 1,
+                cookie_id: self::int($row['cookie_id']),
+                user_agent: self::str($row['user_agent']),
+                ip_address: \Auth\IPBin::binaryToIp(self::str($row['ip_address'])),
+                created_at: self::str($row['created_at']),
+                last_access: self::str($row['last_access']),
+                expires_at: self::str($row['expires_at']),
+                is_current: self::int($row['is_current']) === 1,
             );
         }
         return $devices;
@@ -208,7 +208,13 @@ class CookieRepository
     /** A PDO column value as an int (drivers differ on int vs numeric string). */
     private static function int(mixed $value): int
     {
-        return is_numeric($value) ? (int) $value : 0;
+        if (!is_numeric($value)) {
+            // For PHPStan, which will not cast mixed: cookie_id and is_current
+            // are always numeric, so no test can reach this.
+            // @infection-ignore-all
+            return 0;
+        }
+        return (int) $value;
     }
 
     private static function isMissingUserAgentColumn(\PDOException $e): bool
