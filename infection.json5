@@ -1,0 +1,25 @@
+{
+    // Mutation testing, run in Docker by ~/work/rob/standards-mcp/run-infection.sh
+    // and, for staged class files, by .githooks/pre-commit (print-only).
+    "source": { "directories": ["classes"] },
+
+    // The existing Codeception Unit suite, through infection/codeception-adapter.
+    "testFramework": "codeception",
+    "testFrameworkOptions": "Unit",
+
+    // The project's classes load through a custom autoloader, not composer's.
+    // Without this Infection cannot reflect on them.
+    "bootstrap": "Tests/Unit/_bootstrap.php",
+
+    // The repo is mounted read-only; /tmp is the runner's tmpfs.
+    "tmpDir": "/tmp/infection",
+    "logs": { "text": "/tmp/infection/infection.log" },
+
+    "mutators": {
+        "@default": true,
+        // public -> protected and protected -> private only survive when no
+        // test calls the method from outside, which says nothing about behaviour.
+        "PublicVisibility": false,
+        "ProtectedVisibility": false
+    }
+}
