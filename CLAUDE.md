@@ -233,7 +233,9 @@ The template carries three commit-tier gates from `~/work/rob/standards-mcp`
     ~/work/rob/standards-mcp/run-phpcs.sh <this repo>   # PSR-12 style gate
     ~/work/rob/standards-mcp/run-phpstan.sh <this repo> # PHPStan, level in phpstan.neon
 
-All three must pass (or the change is not commit-ready). Setup and fixing:
+All three must pass (or the change is not commit-ready). A fourth check,
+mutation testing, reports but does not gate: see "Mutation testing" below.
+Setup and fixing:
 
 - Populate `vendor/` once per clone (rootless docker, so container root writes
   as your user):
@@ -286,6 +288,43 @@ All three must pass (or the change is not commit-ready). Setup and fixing:
   that needs a live DB or endpoint does not belong in the Unit suite. An
   in-memory SQLite (`LoginThrottleTest`) is fine: no server, no credentials, gone
   with the process. Classes that want that coverage keep their SQL portable.
+
+### Mutation testing (Infection) — on trial, print-only
+
+    ~/work/rob/standards-mcp/run-infection.sh <this repo>   # whole repo, a few seconds
+
+Infection makes small changes ("mutants") to `classes/` and re-runs the Unit
+tests that cover each changed line. A mutant the tests still pass on is a
+**survivor**: a line a test runs but would not notice being wrong. Design and
+trial result: `docs/superpowers/specs/2026-11-12-infection-mutation-testing-design.md`.
+
+- **The hook prints, it does not block.** When a commit stages a file under
+  `classes/`, `.githooks/pre-commit` mutates just those files and lists the
+  survivors (about one extra second). Nothing Infection does or fails to do
+  changes the commit's exit status. Blocking is Rob's decision after the trial.
+- **A survivor gets one of four answers**, in this order of preference:
+  1. a unit test that asserts the behaviour the mutant broke;
+  2. simpler code, when the survivor shows a default, cast or branch does
+     nothing (own commit, all gates still passing);
+  3. `// @infection-ignore-all` on the line above the statement, with the reason
+     in the same comment block, when no sensible test exists (a random pick, a
+     default PHPStan level 10 requires);
+  4. the mutator switched off in `infection.json5`, only when it is noise
+     everywhere. The two visibility mutators are off for that reason.
+  Never write a test whose only purpose is to kill a mutant.
+- **No score targets.** No `--min-msi`. The output that matters is the list.
+- **Only class methods and closures are mutated.** Plain functions and
+  top-level script code (everything in `wwwroot/`) get no mutants, and code no
+  Unit test runs is reported only with `--with-uncovered`.
+- Extra arguments pass through: `--filter=classes/Foo.php` for one file,
+  `--static-analysis-tool=phpstan` to let PHPStan judge each mutant as well
+  (several times slower, so not in the hook).
+- Infection needs pcov, which is in the runner image but switched off because
+  it slows the other gates; the wrapper and the hook turn it on with
+  `-d pcov.enabled=1`. `infection.json5` names `Tests/Unit/_bootstrap.php` so
+  Infection can load classes through the project's autoloader.
+- `composer.json` allows the `infection/extension-installer` plugin; it is what
+  registers the Codeception adapter.
 
 ## Error Handling and Debugging
 
