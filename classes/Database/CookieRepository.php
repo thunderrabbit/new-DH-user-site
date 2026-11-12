@@ -176,13 +176,13 @@ class CookieRepository
                 continue;
             }
             $devices[] = new \Auth\Device(
-                cookie_id: self::int($row['cookie_id'] ?? 0),
-                user_agent: self::str($row['user_agent'] ?? ''),
-                ip_address: \Auth\IPBin::binaryToIp(self::str($row['ip_address'] ?? '')),
-                created_at: self::str($row['created_at'] ?? ''),
-                last_access: self::str($row['last_access'] ?? ''),
-                expires_at: self::str($row['expires_at'] ?? ''),
-                is_current: self::int($row['is_current'] ?? 0) === 1,
+                cookie_id: self::int($row['cookie_id']),
+                user_agent: self::str($row['user_agent']),
+                ip_address: \Auth\IPBin::binaryToIp(self::str($row['ip_address'])),
+                created_at: self::str($row['created_at']),
+                last_access: self::str($row['last_access']),
+                expires_at: self::str($row['expires_at']),
+                is_current: self::int($row['is_current']) === 1,
             );
         }
         return $devices;
