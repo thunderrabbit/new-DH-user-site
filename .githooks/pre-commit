@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # pre-commit: check exactly what is about to be committed, in the standards-mcp
-# runner image with no network. Any finding blocks the commit.
+# runner image with no network. A phpcs or PHPStan finding blocks the commit;
+# Infection only prints.
 #
 #   phpcs    the staged content of each staged PHP file inside the staged
 #            phpcs.xml's <file> scope (the whole scope when phpcs.xml itself

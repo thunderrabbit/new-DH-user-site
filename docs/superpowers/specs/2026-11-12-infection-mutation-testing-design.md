@@ -1,7 +1,7 @@
 # Infection mutation testing: trial in the template repo
 
 Date: 2026-11-12
-Status: design, awaiting Rob's approval
+Status: approved by Rob 2026-11-12, built the same day; see "Trial result" at the end
 
 ## Why
 
@@ -326,22 +326,29 @@ it is the same handful of files, plus a rebuild of that repo's PHP image.
 
 ### Per-commit time, measured through the hook
 
-| Staged | Before | After |
+| Staged | Without Infection | With Infection |
 |---|---|---|
 | No class file | 0.05 s | 0.05 s (Infection does not start) |
-| `SchemaPath.php` (24 mutants) | 2.66 s | 3.60 s |
-| `LoginThrottle.php` (42 mutants) | 2.66 s | 4.3 s |
+| `SchemaPath.php` (24 mutants) | 2.7 s | 3.7 s |
+| `LoginThrottle.php` (42 mutants) | 2.7 s | 4.0 s |
 
-So one to two seconds extra, inside the budget. A whole-repo run through
-the wrapper is 4 seconds (217 mutants); with PHPStan judging mutants,
-17 seconds.
+Each figure is the middle of three runs of `.githooks/pre-commit` with
+that one file staged, taken at the end of piece 2; "without" is the same
+run with `vendor/bin/infection` moved aside. So 1.0 to 1.3 seconds
+extra, inside the budget.
+
+A whole-repo run through the wrapper is 4 seconds (218 mutants). With
+PHPStan judging mutants it is 6.6 seconds now that nothing survives; it
+was 17 seconds while the 33 survivors existed, because PHPStan is only
+asked about mutants the tests let through.
 
 ### The survivor tally
 
 A whole-repo run found 33 survivors (the spike's 35, less the two
 visibility mutants switched off in piece 1). Piece 2 ran from 19:02 to
-19:07 AEDT, about 5 minutes of agent time, and ended with 217 mutants
-generated and 217 killed.
+19:07 AEDT, about 5 minutes of agent time, and ended with 218 mutants
+generated and 218 killed. Four lines carry an ignore, so their mutants
+are not generated at all.
 
 | Outcome | Count |
 |---|---|
@@ -350,7 +357,13 @@ generated and 217 killed.
 | Ignored on the line, with a reason | 4 |
 | Mutator switched off (piece 2) | 0 |
 
-The 25 killed all pointed at something real. The ones that mattered most:
+Of the 25 killed, about 17 pointed at something that mattered and 8 were
+minor (username trimming, the 255-character cut-off, an early return).
+One of the minor ones is borderline: `testAnUnknownIpIsNeverAnIpBucket`
+inserts rows with an empty address, which the code itself never writes.
+An ignore with a reason would have been as defensible as that test.
+
+The ones that mattered most:
 
 - **A test that could not fail.** `testListMarksTheCookieInHand` sorted
   its booleans before comparing them, so it passed with the "current
@@ -369,8 +382,9 @@ The 25 killed all pointed at something real. The ones that mattered most:
 - **Off-by-ones in the token alphabet pick**, which would drop a
   character from every token or bias them.
 
-The 4 simplified were `?? 0` defaults on row columns that are always
-present (`619c244`). The 4 ignored are two fallback values no test can
+The 4 simplified were survivors on `?? 0` defaults for row columns that
+are always present; the commit dropped all seven `??` defaults there
+(`619c244`). The 4 ignored are two fallback values no test can
 reach or distinguish (`3d5bdd0`, `c51f7c5`). That is 8 of 33, about a
 quarter, that were not test gaps.
 
