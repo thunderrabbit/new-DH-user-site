@@ -208,10 +208,13 @@ class CookieRepository
     /** A PDO column value as an int (drivers differ on int vs numeric string). */
     private static function int(mixed $value): int
     {
-        // The 0 is for PHPStan, which will not cast mixed: cookie_id and
-        // is_current are always numeric, so no test can reach it.
-        // @infection-ignore-all
-        return is_numeric($value) ? (int) $value : 0;
+        if (!is_numeric($value)) {
+            // For PHPStan, which will not cast mixed: cookie_id and is_current
+            // are always numeric, so no test can reach this.
+            // @infection-ignore-all
+            return 0;
+        }
+        return (int) $value;
     }
 
     private static function isMissingUserAgentColumn(\PDOException $e): bool
