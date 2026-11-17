@@ -71,3 +71,16 @@
     font-weight: normal;
     font-size: 0.8em;
 }
+
+/* What waits for an admin: pending migrations and due notifications (mg #858). */
+/* Inside the Admin link; inline-block keeps the link's hover underline off it. */
+.NavBar .AdminCount {
+    display: inline-block;
+    margin-left: 0.2em;
+    padding: 0.05em 0.5em;
+    border-radius: 1em;
+    background: var(--accent, #0366a8);
+    color: var(--panel, #ffffff);
+    font-weight: bold;
+    font-size: 0.8em;
+}
