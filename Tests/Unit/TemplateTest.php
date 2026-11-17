@@ -12,7 +12,37 @@ class TemplateTest extends Unit
     {
         $config = new \Config\Config();
         $config->app_path = dirname(__DIR__, 2);  // project root: real templates/
-        return new \View\Template($config, new \Security\CSRFProtectaroo(new \Mlaphp\Request()));
+        return new \View\Template(
+            config: $config,
+            csrf: new \Security\CSRFProtectaroo(new \Mlaphp\Request()),
+            admin_count: 0,
+        );
+    }
+
+    public function testAdminCountReachesTemplateAndCannotBeOverridden(): void
+    {
+        $root = sys_get_temp_dir() . '/template-count-' . bin2hex(random_bytes(4));
+        mkdir("$root/templates", 0700, true);
+        file_put_contents("$root/templates/count.tpl.php", '<?= $admin_count ?>');
+        $_SESSION = [];
+        try {
+            $config = new \Config\Config();
+            $config->app_path = $root;
+            $page = new \View\Template(
+                config: $config,
+                csrf: new \Security\CSRFProtectaroo(new \Mlaphp\Request()),
+                admin_count: 3,
+            );
+            $page->setTemplate("count.tpl.php");
+            $page->set('admin_count', 99);
+
+            $this->assertSame('3', $page->grabTheGoods());
+        } finally {
+            unset($_SESSION);
+            unlink("$root/templates/count.tpl.php");
+            rmdir("$root/templates");
+            rmdir($root);
+        }
     }
 
     public function testHandsTheCsrfProtectorToTheTemplate(): void
@@ -25,7 +55,7 @@ class TemplateTest extends Unit
             $csrf = new \Security\CSRFProtectaroo(new \Mlaphp\Request());
             $config = new \Config\Config();
             $config->app_path = $root;
-            $page = new \View\Template($config, csrf: $csrf);
+            $page = new \View\Template($config, csrf: $csrf, admin_count: 0);
             $page->setTemplate("form.tpl.php");
             $page->set('csrf', 'a page variable cannot replace it');
 

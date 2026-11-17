@@ -120,6 +120,28 @@ This is a minimalist PHP web application framework designed for DreamHost deploy
 - The auth cookie is `SameSite=Lax` (see `Auth\CookieOptions`): `Strict` logged out anyone
   arriving by link from another site. Lax is the backstop; the token is the defence.
 
+### Admin notifications
+
+mg #858, ported from games.chatforest.com (mg #851, spec there:
+`docs/superpowers/specs/2026-11-16-admin-notifications-design.md`).
+
+- Admins see a count inside the menu's Admin link: pending migrations plus due notifications
+  (`show_from <= now` in UTC, `completed_at` NULL). `prepend.php` works it out for admins only and
+  every `View\Template` is built with it (`admin_count: $admin_count`; `register.php`, which runs
+  without `prepend.php`, passes 0). A `set('admin_count')` cannot replace it.
+- `notifications` (`Admin\Notifications`) is a framework table created **empty** from `01`; a site
+  adds its own rows in a later migration. **Migrations never go in it and can never be completed**:
+  applying them is the only way out of the count. A missing table or a database error counts
+  nothing and never stops a page.
+- `/admin/notifications/` lists the due ones, each with a Completed button (`complete()`: due rows
+  only, false on a second press). A link is stored and drawn only when
+  `Admin\Notifications::isSitePath()` accepts it: one leading slash, nothing that leaves the site.
+- Its "Remind me" form (`remind()`, answering `Admin\RemindResult`) adds a row to this site's
+  database: a day (shown from 00:00 UTC; a past day is due at once), a message of up to 1000
+  characters and an optional link. A refused form is drawn again with what was typed. Upcoming rows
+  (`listUpcoming()`) are listed below it with no button: **nothing edits or cancels one yet**, so a
+  typo is fixed in phpMyAdmin.
+
 ## Important Files
 
 - `prepend.php` - Main application bootstrap (included by all pages)

@@ -11,6 +11,7 @@ include_once $matches[1] . '/prepend.php';
  * Set up by prepend.php.
  *
  * @var \Config\Config $config
+ * @var int $admin_count
  * @var \Security\CSRFProtectaroo $csrfProtect
  * @var \Auth\IsLoggedIn $is_logged_in
  */
@@ -26,7 +27,7 @@ $site_title = $config->site_title ?? 'Site';
 
 if ($is_logged_in->isLoggedIn()) {
     // Logged in - show main site homepage
-    $page = new \View\Template(config: $config, csrf: $csrfProtect);
+    $page = new \View\Template(config: $config, csrf: $csrfProtect, admin_count: $admin_count);
     $page->setTemplate("layout/base.tpl.php");
     $page->set("page_title", $site_title);
     $page->set("username", $is_logged_in->getLoggedInUsername());
@@ -34,7 +35,7 @@ if ($is_logged_in->isLoggedIn()) {
     $page->set("site_version", SENTIMENTAL_VERSION);
 
     // Get the inner content
-    $inner_page = new \View\Template(config: $config, csrf: $csrfProtect);
+    $inner_page = new \View\Template(config: $config, csrf: $csrfProtect, admin_count: $admin_count);
     $inner_page->setTemplate("index.tpl.php");
     $inner_page->set("site_title", $site_title);
     $inner_page->set("username", $is_logged_in->getLoggedInUsername());
@@ -46,11 +47,11 @@ if ($is_logged_in->isLoggedIn()) {
     exit;
 } else {
     // Logged out - same layout and menu, with a way in
-    $inner_page = new \View\Template(config: $config, csrf: $csrfProtect);
+    $inner_page = new \View\Template(config: $config, csrf: $csrfProtect, admin_count: $admin_count);
     $inner_page->setTemplate("welcome.tpl.php");
     $inner_page->set("site_title", $site_title);
 
-    $page = new \View\Template(config: $config, csrf: $csrfProtect);
+    $page = new \View\Template(config: $config, csrf: $csrfProtect, admin_count: $admin_count);
     $page->setTemplate("layout/base.tpl.php");
     $page->set("page_title", $site_title);
     $page->set("username", "");
