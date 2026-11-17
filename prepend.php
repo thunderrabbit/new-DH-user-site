@@ -81,11 +81,12 @@ $is_logged_in = new \Auth\IsLoggedIn(
 $is_logged_in->resumeFromCookie($mla_request);
 
 // What waits for an admin, drawn in the menu's Admin link by every Template:
-// pending migrations (mg #858, from games' mg #851). The pending list is read
+// pending migrations plus due notifications (mg #858). The pending list is read
 // again on purpose: the one checkaroo() built is from before its auto-apply,
 // so it is stale on exactly the requests that change it. Nobody else is
 // counted, and no query runs.
 $admin_count = 0;
 if ($is_logged_in->isLoggedIn() && $is_logged_in->isAdmin()) {
-    $admin_count = count($dbExistaroo->getPendingMigrations());
+    $admin_count = count($dbExistaroo->getPendingMigrations())
+        + new \Admin\Notifications($mla_database)->dueCount();
 }

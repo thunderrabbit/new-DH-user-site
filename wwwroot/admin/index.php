@@ -15,6 +15,7 @@ include_once $matches[1] . '/prepend.php';
  * @var \Security\CSRFProtectaroo $csrfProtect
  * @var \Database\DBExistaroo $dbExistaroo
  * @var \Auth\IsLoggedIn $is_logged_in
+ * @var \PDO $mla_database
  */
 
 # A Config.php written before $site_title existed should still render a page.
@@ -29,6 +30,9 @@ if ($is_logged_in->isLoggedIn() && $is_logged_in->isAdmin()) {
     // @phpstan-ignore nullCoalesce.property (an older Config.php may not declare it)
     $page->set(name: "allow_registration", value: $config->allow_registration ?? true);
     $page->set(name: "username", value: $is_logged_in->getLoggedInUsername());
+
+    // Due notifications (mg #858), so a count higher than the migration list says why.
+    $page->set(name: "due_notifications", value: new \Admin\Notifications($mla_database)->dueCount());
 
     $pending = $dbExistaroo->getPendingMigrations();
     $page->set(name: "has_pending_migrations", value: !empty($pending));
