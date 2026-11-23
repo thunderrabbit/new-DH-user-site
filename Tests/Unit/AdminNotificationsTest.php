@@ -238,6 +238,6 @@ class AdminNotificationsTest extends Unit
         foreach (\Admin\RemindResult::cases() as $case) {
             $this->assertNotSame('', $case->says());
         }
-        $this->assertStringContainsString('1000', \Admin\RemindResult::BadMessage->says());
+        $this->assertSame('Give a message of 1 to 1000 characters.', \Admin\RemindResult::BadMessage->says());
     }
 }
