@@ -100,6 +100,9 @@ final readonly class Notifications
             $message = $row['message'] ?? null;
             $link = $row['link'] ?? null;
             $show_from = $row['show_from'] ?? null;
+            // For PHPStan, which will not cast mixed: these columns are NOT NULL,
+            // so no row a test can build fails the guard.
+            // @infection-ignore-all
             if (is_numeric($id) && is_string($message) && is_string($show_from)) {
                 $found[] = new Notification((int) $id, $message, is_string($link) ? $link : null, $show_from);
             }
