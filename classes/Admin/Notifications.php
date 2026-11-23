@@ -41,4 +41,69 @@ final readonly class Notifications
         // @infection-ignore-all
         return is_numeric($count) ? (int) $count : 0;
     }
+
+    /**
+     * The rows dueCount() counts, oldest show_from first.
+     *
+     * @return list<Notification>
+     */
+    public function listDue(): array
+    {
+        try {
+            $stmt = $this->pdo->prepare(
+                "SELECT notification_id, message, link, show_from FROM notifications
+                 WHERE show_from <= ? AND completed_at IS NULL
+                 ORDER BY show_from, notification_id"
+            );
+            $stmt->execute([$this->now->format('Y-m-d H:i:s')]);
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        } catch (\PDOException) {
+            return [];
+        }
+        return self::fromRows($rows);
+    }
+
+    /**
+     * Not yet due and not completed, soonest first: what a "Remind me" form
+     * has waiting, so a typo can be seen before its day comes.
+     *
+     * @return list<Notification>
+     */
+    public function listUpcoming(): array
+    {
+        try {
+            $stmt = $this->pdo->prepare(
+                "SELECT notification_id, message, link, show_from FROM notifications
+                 WHERE show_from > ? AND completed_at IS NULL
+                 ORDER BY show_from, notification_id"
+            );
+            $stmt->execute([$this->now->format('Y-m-d H:i:s')]);
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        } catch (\PDOException) {
+            return [];
+        }
+        return self::fromRows($rows);
+    }
+
+    /**
+     * @param array<mixed> $rows
+     * @return list<Notification>
+     */
+    private static function fromRows(array $rows): array
+    {
+        $found = [];
+        foreach ($rows as $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+            $id = $row['notification_id'] ?? null;
+            $message = $row['message'] ?? null;
+            $link = $row['link'] ?? null;
+            $show_from = $row['show_from'] ?? null;
+            if (is_numeric($id) && is_string($message) && is_string($show_from)) {
+                $found[] = new Notification((int) $id, $message, is_string($link) ? $link : null, $show_from);
+            }
+        }
+        return $found;
+    }
 }

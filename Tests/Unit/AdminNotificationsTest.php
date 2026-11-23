@@ -76,4 +76,59 @@ class AdminNotificationsTest extends Unit
     {
         $this->assertSame(0, $this->notifications()->dueCount());
     }
+
+    /**
+     * @param list<\Admin\Notification> $list
+     * @return list<string>
+     */
+    private function messages(array $list): array
+    {
+        return array_map(static fn(\Admin\Notification $n): string => $n->message, $list);
+    }
+
+    private function insertRow(string $message, ?string $link, string $show_from, ?string $completed_at = null): void
+    {
+        $stmt = $this->pdo->prepare(
+            "INSERT INTO notifications (message, link, show_from, completed_at, created_at)
+             VALUES (?, ?, ?, ?, '2026-11-16 00:00:00')"
+        );
+        $stmt->execute([$message, $link, $show_from, $completed_at]);
+    }
+
+    public function testListDueIsWhatDueCountCountsOldestFirst(): void
+    {
+        $this->createTable();
+        $this->insertRow('later', '/b/', '2027-03-31 00:00:00');
+        $this->insertRow('earlier', null, '2027-03-01 00:00:00');
+        $this->insertRow('done', null, '2027-03-02 00:00:00', '2027-03-03 00:00:00');
+        $this->insertRow('future', null, '2027-04-02 00:00:00');
+
+        $due = $this->notifications()->listDue();
+
+        $this->assertCount($this->notifications()->dueCount(), $due);
+        $this->assertSame(['earlier', 'later'], $this->messages($due));
+        $this->assertNull($due[0]->link);
+        $this->assertSame('/b/', $due[1]->link);
+        $this->assertSame('2027-03-31 00:00:00', $due[1]->show_from);
+        $this->assertGreaterThan(0, $due[0]->notification_id);
+    }
+
+    public function testListUpcomingIsOnlyWhatIsNotYetDueSoonestFirst(): void
+    {
+        $this->createTable();
+        $this->insertRow('now', null, '2027-04-01 00:00:00');
+        $this->insertRow('next year', null, '2028-04-01 00:00:00');
+        $this->insertRow('tomorrow', null, '2027-04-02 00:00:00');
+        $this->insertRow('done', null, '2027-05-01 00:00:00', '2027-03-03 00:00:00');
+
+        $upcoming = $this->notifications()->listUpcoming();
+
+        $this->assertSame(['tomorrow', 'next year'], $this->messages($upcoming));
+    }
+
+    public function testListsAreEmptyWithoutTheTable(): void
+    {
+        $this->assertSame([], $this->notifications()->listDue());
+        $this->assertSame([], $this->notifications()->listUpcoming());
+    }
 }
