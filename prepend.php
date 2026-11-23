@@ -80,11 +80,13 @@ $is_logged_in = new \Auth\IsLoggedIn(
 // checked by /login/index.php alone, never here.
 $is_logged_in->resumeFromCookie($mla_request);
 
-// How many migrations wait for an admin, for the menu's Admin link. Asked
-// again here on purpose: the list checkaroo() built is from before its
-// auto-apply, so it is stale on exactly the requests that change it. Only an
-// admin is counted, so no query runs for anyone else.
+// What waits for an admin, for the menu's Admin link: pending migrations plus
+// due notifications (mg #851). The pending list is asked again here on
+// purpose: the one checkaroo() built is from before its auto-apply, so it is
+// stale on exactly the requests that change it. Only an admin is counted, so
+// no query runs for anyone else.
 $admin_count = 0;
 if ($is_logged_in->isLoggedIn() && $is_logged_in->isAdmin()) {
-    $admin_count = count($dbExistaroo->getPendingMigrations());
+    $admin_count = count($dbExistaroo->getPendingMigrations())
+        + new \Admin\Notifications($mla_database)->dueCount();
 }
