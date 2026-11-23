@@ -12,6 +12,7 @@ include_once $matches[1] . '/prepend.php';
  *
  * @var \Config\Config $config
  * @var \Security\CSRFProtectaroo $csrfProtect
+ * @var int $admin_count
  * @var \Auth\IsLoggedIn $is_logged_in
  * @var \PDO $mla_database
  */
@@ -84,7 +85,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // Display the form
-$page = new \View\Template(config: $config, csrf: $csrfProtect);
+$page = new \View\Template(config: $config, csrf: $csrfProtect, admin_count: $admin_count);
 $page->setTemplate("profile/index.tpl.php");
 $page->set("username", $is_logged_in->getLoggedInUsername());
 $page->set("error_message", $error_message);
@@ -92,7 +93,7 @@ $page->set("success_message", $success_message);
 
 $inner = $page->grabTheGoods();
 
-$layout = new \View\Template(config: $config, csrf: $csrfProtect);
+$layout = new \View\Template(config: $config, csrf: $csrfProtect, admin_count: $admin_count);
 $layout->setTemplate("layout/base.tpl.php");
 $layout->set("username", $is_logged_in->getLoggedInUsername());
 $layout->set("is_admin", $is_logged_in->isAdmin());

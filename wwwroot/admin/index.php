@@ -12,6 +12,7 @@ include_once $matches[1] . '/prepend.php';
  *
  * @var \Config\Config $config
  * @var \Security\CSRFProtectaroo $csrfProtect
+ * @var int $admin_count
  * @var \Database\DBExistaroo $dbExistaroo
  * @var \Auth\IsLoggedIn $is_logged_in
  */
@@ -21,7 +22,7 @@ include_once $matches[1] . '/prepend.php';
 $site_title = $config->site_title ?? 'Site';
 
 if ($is_logged_in->isLoggedIn() && $is_logged_in->isAdmin()) {
-    $page = new \View\Template(config: $config, csrf: $csrfProtect);
+    $page = new \View\Template(config: $config, csrf: $csrfProtect, admin_count: $admin_count);
     $page->setTemplate("admin/index.tpl.php");
     $page->set(name: "site_title", value: $site_title);
     $page->set(name: "site_version", value: SENTIMENTAL_VERSION);
@@ -33,7 +34,7 @@ if ($is_logged_in->isLoggedIn() && $is_logged_in->isAdmin()) {
     $page->set(name: "has_pending_migrations", value: !empty($pending));
     $inner = $page->grabTheGoods();
 
-    $layout = new \View\Template(config: $config, csrf: $csrfProtect);
+    $layout = new \View\Template(config: $config, csrf: $csrfProtect, admin_count: $admin_count);
     $layout->setTemplate("layout/base.tpl.php");
     $layout->set("page_title", $site_title . " Admin");
     $layout->set("username", $is_logged_in->getLoggedInUsername());
