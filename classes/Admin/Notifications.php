@@ -36,6 +36,9 @@ final readonly class Notifications
         } catch (\PDOException) {
             return 0;
         }
+        // For PHPStan, which will not cast mixed: COUNT(*) is always numeric,
+        // so no test can reach the fallback.
+        // @infection-ignore-all
         return is_numeric($count) ? (int) $count : 0;
     }
 }
