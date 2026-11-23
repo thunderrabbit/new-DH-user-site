@@ -109,4 +109,24 @@ final readonly class Notifications
         }
         return $found;
     }
+
+    /**
+     * Mark a due notification completed by this admin. True only if this call
+     * did it: a second click, an unknown id, a row not yet due and a missing
+     * table are all false.
+     */
+    public function complete(int $notification_id, int $user_id): bool
+    {
+        $now = $this->now->format('Y-m-d H:i:s');
+        try {
+            $stmt = $this->pdo->prepare(
+                "UPDATE notifications SET completed_at = ?, completed_by = ?
+                 WHERE notification_id = ? AND completed_at IS NULL AND show_from <= ?"
+            );
+            $stmt->execute([$now, $user_id, $notification_id, $now]);
+        } catch (\PDOException) {
+            return false;
+        }
+        return $stmt->rowCount() === 1;
+    }
 }

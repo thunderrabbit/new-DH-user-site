@@ -131,4 +131,37 @@ class AdminNotificationsTest extends Unit
         $this->assertSame([], $this->notifications()->listDue());
         $this->assertSame([], $this->notifications()->listUpcoming());
     }
+
+    public function testCompleteMarksADueRowOnceAndNamesTheAdmin(): void
+    {
+        $this->createTable();
+        $this->insertRow('due', null, '2027-03-31 00:00:00');
+        $n = $this->notifications();
+
+        $this->assertTrue($n->complete(1, 7));
+        $this->assertFalse($n->complete(1, 8));
+        $this->assertSame(0, $n->dueCount());
+        $stmt = $this->pdo->query("SELECT completed_at, completed_by FROM notifications");
+        $this->assertNotFalse($stmt);
+        $this->assertSame(
+            ['completed_at' => '2027-04-01 00:00:00', 'completed_by' => 7],
+            $stmt->fetch(\PDO::FETCH_ASSOC),
+        );
+    }
+
+    public function testCompleteRefusesARowNotYetDueAndAnUnknownId(): void
+    {
+        $this->createTable();
+        $this->insertRow('future', null, '2027-04-02 00:00:00');
+        $n = $this->notifications();
+
+        $this->assertFalse($n->complete(1, 7));
+        $this->assertFalse($n->complete(99, 7));
+        $this->assertCount(1, $n->listUpcoming());
+    }
+
+    public function testCompleteWithoutTheTableIsFalse(): void
+    {
+        $this->assertFalse($this->notifications()->complete(1, 7));
+    }
 }
