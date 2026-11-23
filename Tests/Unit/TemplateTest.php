@@ -8,11 +8,15 @@ use Codeception\Test\Unit;
 
 class TemplateTest extends Unit
 {
-    private function template(): \View\Template
+    private function template(int $admin_count = 0): \View\Template
     {
         $config = new \Config\Config();
         $config->app_path = dirname(__DIR__, 2);  // project root: real templates/
-        return new \View\Template($config, new \Security\CSRFProtectaroo(new \Mlaphp\Request()));
+        return new \View\Template(
+            $config,
+            new \Security\CSRFProtectaroo(new \Mlaphp\Request()),
+            admin_count: $admin_count,
+        );
     }
 
     public function testHandsTheCsrfProtectorToTheTemplate(): void
@@ -25,7 +29,7 @@ class TemplateTest extends Unit
             $csrf = new \Security\CSRFProtectaroo(new \Mlaphp\Request());
             $config = new \Config\Config();
             $config->app_path = $root;
-            $page = new \View\Template($config, csrf: $csrf);
+            $page = new \View\Template($config, csrf: $csrf, admin_count: 0);
             $page->setTemplate("form.tpl.php");
             $page->set('csrf', 'a page variable cannot replace it');
 
@@ -109,9 +113,9 @@ class TemplateTest extends Unit
         $this->assertStringContainsString('<title>Site</title>', $layout->grabTheGoods());
     }
 
-    private function menuFor(string $username, bool $is_admin): string
+    private function menuFor(string $username, bool $is_admin, int $admin_count = 0): string
     {
-        $layout = $this->template();
+        $layout = $this->template($admin_count);
         $layout->setTemplate("layout/base.tpl.php");
         $layout->set('username', $username);
         $layout->set('is_admin', $is_admin);
@@ -143,6 +147,53 @@ class TemplateTest extends Unit
     public function testMenuOffersAdminOnlyToAdmins(): void
     {
         $this->assertStringContainsString('href="/admin/"', $this->menuFor('Rob', true));
+    }
+
+    public function testAdminSeesTheCountInTheAdminLink(): void
+    {
+        $html = $this->menuFor('Rob', true, 3);
+
+        $this->assertStringContainsString('aria-label="Admin, 3 waiting for an admin"', $html);
+        $this->assertStringContainsString('<span class="AdminCount" aria-hidden="true">3</span></a>', $html);
+    }
+
+    public function testAdminWithNothingPendingSeesThePlainLink(): void
+    {
+        $html = $this->menuFor('Rob', true, 0);
+
+        $this->assertStringContainsString('<a href="/admin/">Admin</a>', $html);
+        $this->assertStringNotContainsString('AdminCount', $html);
+    }
+
+    public function testPlainUserNeverSeesTheCount(): void
+    {
+        $html = $this->menuFor('Pat', false, 3);
+
+        $this->assertStringNotContainsString('AdminCount', $html);
+        $this->assertStringNotContainsString('waiting for an admin', $html);
+    }
+
+    public function testLoggedOutVisitorNeverSeesTheCount(): void
+    {
+        $html = $this->menuFor('', false, 3);
+
+        $this->assertStringNotContainsString('AdminCount', $html);
+        $this->assertStringNotContainsString('waiting for an admin', $html);
+    }
+
+    public function testASetCannotReplaceTheConstructorsCount(): void
+    {
+        $layout = $this->template(3);
+        $layout->setTemplate("layout/base.tpl.php");
+        $layout->set('username', 'Rob');
+        $layout->set('is_admin', true);
+        $layout->set('admin_count', 99);
+        $layout->set('page_content', 'hello');
+
+        $html = $layout->grabTheGoods();
+
+        $this->assertStringContainsString('Admin, 3 waiting for an admin', $html);
+        $this->assertStringNotContainsString('99', $html);
     }
 
     public function testMenuDefaultsToLoggedOut(): void

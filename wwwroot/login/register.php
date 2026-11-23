@@ -154,7 +154,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     exit;
 } else {
-    $page = new \View\Template(config: $config, csrf: $csrfProtect);
+    $page = new \View\Template(config: $config, csrf: $csrfProtect, admin_count: 0);
     $page->setTemplate("login/register.tpl.php");
     $page->set('creating_admin_user', $creating_admin_user);
     $page->set('bootstrap_token_missing', $bootstrap_token_missing);

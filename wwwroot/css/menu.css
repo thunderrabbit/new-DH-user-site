@@ -71,3 +71,18 @@
     font-weight: normal;
     font-size: 0.8em;
 }
+
+/* Migrations waiting for an admin, inside the Admin link so the chip is
+   clicked too. inline-block keeps the link's hover underline off the pill. */
+.NavBar .AdminCount {
+    display: inline-block;
+    min-width: 1.4em;
+    margin-left: 0.25em;
+    padding: 0 0.4em;
+    border-radius: 999px;
+    background-color: var(--accent, #0366a8);
+    color: var(--panel, #ffffff);
+    font-size: 0.8em;
+    line-height: 1.4;
+    text-align: center;
+}
