@@ -243,9 +243,17 @@ Setup and fixing:
       docker run --rm -e COMPOSER_HOME=/tmp/composer -v "$PWD":/app -w /app \
         composer:2 composer install --no-interaction
 
-  New sites run PHP 8.5 or later: `composer.json` requires it, PHPStan analyses
-  as 8.5 (`phpVersion` in `phpstan.neon`), and the hook and standards-mcp
-  (`php_target` in its `repos.yaml`) use the php8.5 runner. Change all of them
+  **Sites run PHP 8.6 or later, and refuse to run on anything older**:
+  `Version\Php::requireFloor()` is the first thing `prepend.php` and
+  `/login/register.php` do, and it answers 503 below 8.6.
+
+  The tooling trails that by one version, on purpose. No php8.6 runner image
+  exists yet (the official `php:8.6-cli` image ships without `pecl`, so the
+  runner's pcov will not install; standards-mcp `84aeeba`), so `composer.json`
+  still says `>=8.5`, PHPStan analyses as 8.5 (`phpVersion` in `phpstan.neon`),
+  and the hook and standards-mcp (`php_target` in its `repos.yaml`) use the
+  php8.5 runner. Until that image builds, **write nothing that PHP 8.5 cannot
+  parse**: the gates could not check it. When it builds, change all four
   together. `config.platform.php` pins resolution to php 8.5 (the runner's php) —
   don't remove it, or composer will resolve packages too new to parse.
 
