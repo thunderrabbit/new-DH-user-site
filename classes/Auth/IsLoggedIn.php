@@ -210,8 +210,20 @@ class IsLoggedIn
         }
 
         $user_id = $row['user_id'] ?? null;
+        if (!is_numeric($user_id)) {
+            return 0;
+        }
 
-        return is_numeric($user_id) ? (int) $user_id : 0;
+        // The one moment the plain password is in hand: if the stored hash is
+        // weaker than password_hash() makes today (an older cost), replace it.
+        if (password_needs_rehash($hashed_password, PASSWORD_DEFAULT)) {
+            new \Database\PasswordRepository($this->di_pdo)->updatePasswordHash(
+                (int) $user_id,
+                password_hash($password, PASSWORD_DEFAULT),
+            );
+        }
+
+        return (int) $user_id;
     }
 
     private function getUserIdForCookieInDatabase(

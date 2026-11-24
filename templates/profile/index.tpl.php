@@ -27,9 +27,9 @@
             <div class="PageRow noborder">
                 <label for="new_password">New Password:</label>
                 <div class="PageInput">
-                    <input type="password" name="new_password" id="new_password" class="validate[required]" required />
+                    <input type="password" name="new_password" id="new_password" class="validate[required]" required minlength="<?= \Auth\PasswordPolicy::MIN_CHARACTERS ?>" autocomplete="new-password" />
                 </div>
-                <div class="fix"></div>
+                <div class="fix">At least <?= \Auth\PasswordPolicy::MIN_CHARACTERS ?> characters. Several unrelated words work well.</div>
             </div>
 
             <div class="PageRow noborder">

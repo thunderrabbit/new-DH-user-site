@@ -109,6 +109,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     if (empty($password)) {
         $errors[] = "Password is required.";
+    } else {
+        // The first admin's password is held to the policy like anyone's.
+        $errors = [...$errors, ...\Auth\PasswordPolicy::problems($password)];
     }
     if ($password !== $password_confirm) {
         $errors[] = "Passwords do not match.";

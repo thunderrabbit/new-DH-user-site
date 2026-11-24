@@ -42,6 +42,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     if (empty($new_password)) {
         $errors[] = "New password is required.";
+    } else {
+        // Only the new password: the current one may predate the policy.
+        $errors = [...$errors, ...\Auth\PasswordPolicy::problems($new_password)];
     }
     if (empty($confirm_password)) {
         $errors[] = "Password confirmation is required.";
