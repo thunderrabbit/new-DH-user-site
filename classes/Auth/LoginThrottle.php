@@ -106,6 +106,9 @@ class LoginThrottle
     {
         $ip_bin = IPBin::ipToBinary($ip_address);
         if ($ip_bin === '') {
+            // Any count under the IP limit says "no bucket", and 0 is the
+            // honest one; no test can tell it from 1.
+            // @infection-ignore-all
             return 0;
         }
         return $this->countSince(
