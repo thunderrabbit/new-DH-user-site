@@ -81,6 +81,8 @@ This is a minimalist PHP web application framework designed for DreamHost deploy
     CSRF token, issue the remember-me cookie, record the user). **Any new way in — emailed
     sign-in links, OAuth — must call `establishSession()` and nothing else.**
   - Login failures get one generic message; naming which half was wrong enumerates usernames.
+    So does answering faster for a username that does not exist, so that case runs
+    `password_verify()` against a fixed hash and discards the result.
   - `attemptPasswordLogin()` returns `Auth\LoginResult` (`Success`, `BadCredentials`,
     `Throttled`). `Auth\LoginThrottle` counts failures in `login_attempts`: 5 per username or
     20 per IP inside 15 minutes and the password is not even checked. A success clears that
