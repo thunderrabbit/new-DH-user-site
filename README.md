@@ -100,7 +100,7 @@ and a clean layout system with cookie-based authentication.
    | `$site_title` | Shown in `<title>` and the front-page heading |
    | `$allow_registration` | May strangers sign up? Ships `true`. See *Who may register* |
    | `$domain_name` | **Must equal the browser's `HTTP_HOST`**, or `DBExistaroo` refuses to run |
-   | `$cookie_name` | Any name; distinguish it per site |
+   | `$cookie_name` | Any name; distinguish it per site. The browser sees `__Host-<name>` |
    | `$app_path` | Project root on the server, e.g. `/home/dh_user/example.com` |
    | `$dbHost` `$dbUser` `$dbPass` `$dbName` | Read directly by `Database\Base::getPDO()` |
 
