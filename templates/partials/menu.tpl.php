@@ -18,7 +18,11 @@ $menu_admin_count = (int) ($admin_count ?? 0);
             <a href="/profile/">Profile ▾</a>
             <div class="dropdown-menu">
                 <a href="/profile/devices/">Devices</a>
-                <a href="/logout/">Logout</a>
+                <?php /* A form, not a link: logging out changes state, so it is a POST with the CSRF token. */ ?>
+                <form action="/logout/" method="POST" class="LogoutForm">
+                    <?= $csrf->field() ?>
+                    <button type="submit">Logout</button>
+                </form>
             </div>
         </div>
         <?php if ($menu_is_admin): ?>

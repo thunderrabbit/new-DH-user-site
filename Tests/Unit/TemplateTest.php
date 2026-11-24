@@ -8,6 +8,17 @@ use Codeception\Test\Unit;
 
 class TemplateTest extends Unit
 {
+    protected function _before(): void
+    {
+        // The logged-in menu holds a form, and its CSRF field needs a session to keep the token in.
+        $_SESSION = [];
+    }
+
+    protected function _after(): void
+    {
+        unset($_SESSION);
+    }
+
     private function template(int $admin_count = 0): \View\Template
     {
         $config = new \Config\Config();
@@ -128,7 +139,7 @@ class TemplateTest extends Unit
         $html = $this->menuFor('', false);
 
         $this->assertStringContainsString('href="/login/"', $html);
-        $this->assertStringNotContainsString('href="/logout/"', $html);
+        $this->assertStringNotContainsString('/logout/', $html);
         $this->assertStringNotContainsString('href="/profile/devices/"', $html);
         $this->assertStringNotContainsString('href="/admin/"', $html);
     }
@@ -139,9 +150,19 @@ class TemplateTest extends Unit
 
         $this->assertStringContainsString('href="/profile/"', $html);
         $this->assertStringContainsString('href="/profile/devices/"', $html);
-        $this->assertStringContainsString('href="/logout/"', $html);
         $this->assertStringNotContainsString('href="/login/"', $html);
         $this->assertStringNotContainsString('href="/admin/"', $html);
+    }
+
+    public function testLogoutIsAPostFormCarryingTheCsrfToken(): void
+    {
+        $html = $this->menuFor('Rob', false);
+        $token = new \Security\CSRFProtectaroo(new \Mlaphp\Request())->getToken();
+
+        $this->assertStringContainsString('<form action="/logout/" method="POST"', $html);
+        $this->assertStringContainsString('name="csrf_token" value="' . $token . '"', $html);
+        // A link would be a GET, which any other site can make this browser send.
+        $this->assertStringNotContainsString('href="/logout/"', $html);
     }
 
     public function testMenuOffersAdminOnlyToAdmins(): void

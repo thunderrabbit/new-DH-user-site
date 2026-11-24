@@ -51,5 +51,8 @@
 <div class="PagePanel">
     <p>Logged in as: <strong><?= htmlspecialchars($username) ?></strong></p>
     <p><a href="/profile/devices/">Signed-in devices</a></p>
-    <a href="/logout/">Logout</a>
+    <form action="/logout/" method="POST" class="LogoutForm">
+        <?= $csrf->field() ?>
+        <button type="submit">Logout</button>
+    </form>
 </div>

@@ -58,6 +58,32 @@
     background: var(--card-hover, #f3faff);
 }
 
+/* Logout is a POST, so it is a button in a form. Here it is dressed as the
+   links beside it. */
+.NavBar .dropdown-menu .LogoutForm {
+    margin: 0;
+}
+
+.NavBar .dropdown-menu .LogoutForm button {
+    display: block;
+    width: 100%;
+    margin: 0;
+    padding: 0.25em 1em;
+    border: 0;
+    background: none;
+    color: var(--accent, #0366a8);
+    font: inherit;
+    font-weight: bold;
+    text-align: left;
+    cursor: pointer;
+}
+
+.NavBar .dropdown-menu .LogoutForm button:hover,
+.NavBar .dropdown-menu .LogoutForm button:focus-visible {
+    background: var(--card-hover, #f3faff);
+    text-decoration: underline;
+}
+
 /* Keyboard users reach Logout by tabbing into the dropdown. */
 .NavBar .dropdown:hover .dropdown-menu,
 .NavBar .dropdown:focus-within .dropdown-menu {
