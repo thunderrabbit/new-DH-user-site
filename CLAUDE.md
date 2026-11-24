@@ -112,6 +112,9 @@ This is a minimalist PHP web application framework designed for DreamHost deploy
   `<?= $csrf->field() ?>` inside the `<form>`. `fetch()` callers: send the `X-CSRF-Token`
   header with `$csrf->getToken()` (always `json_encode()` it into JS). See
   `templates/admin/migrate_tables.tpl.php`.
+- **Nothing changes state on a GET**, because the check above lets every GET through.
+  Logout is the example: `/logout/` acts on POST only, and the menu's Logout is a form
+  with `$csrf->field()`, not a link.
 - No `global` and no `$GLOBALS` (mg's MLAPHP step): a function takes what it needs as a
   parameter, a class as a constructor argument, a template as a `set()` variable.
 - **Start a session with `\Auth\Session::start()`, never a bare `session_start()`.** The
