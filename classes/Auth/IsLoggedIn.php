@@ -12,6 +12,14 @@ namespace Auth;
 
 class IsLoggedIn
 {
+    /**
+     * A bcrypt hash at password_hash()'s default cost (12), checked when the
+     * username does not exist so that a miss takes as long as a wrong
+     * password. Its result is thrown away. Regenerate it if PHP's default
+     * cost changes, or the two cases drift apart again.
+     */
+    private const string ABSENT_USER_HASH = '$2y$12$CNNMbz7HrYFfGv3BK2PH.uNFv1u/rjjvtBsMzzvkhF69Rvm14J8u6';
+
     private int $who_is_logged_in = 0;
 
     private string $loggedInUsername = 'YUNOset?'; // default value, should be overwritten if user is logged in
@@ -33,7 +41,7 @@ class IsLoggedIn
      */
     public function resumeFromCookie(\Mlaphp\Request $mla_request): void
     {
-        $cookie = $mla_request->cookie[$this->di_config->cookie_name] ?? '';
+        $cookie = $mla_request->cookie[$this->cookieName()] ?? '';
         if (!is_string($cookie) || $cookie === '') {
             return;
         }
@@ -60,10 +68,14 @@ class IsLoggedIn
      * BadCredentials has no side effects; the caller shows one generic
      * message for it so a guesser cannot learn which usernames exist.
      */
-    public function attemptPasswordLogin(string $username, string $password): LoginResult
-    {
+    public function attemptPasswordLogin(
+        string $username,
+        #[\SensitiveParameter] string $password,
+    ): LoginResult {
         $ip_address = self::serverString('REMOTE_ADDR');
-        if ($this->di_throttle->isThrottled($username, $ip_address)) {
+        // admit() counts this attempt as a failure before anything else, so
+        // parallel guesses cannot slip past the limit together.
+        if (!$this->di_throttle->admit($username, $ip_address)) {
             // Do not even look at the password: a throttled guess must cost
             // the attacker nothing in information and us nothing in bcrypt.
             return LoginResult::Throttled;
@@ -71,7 +83,7 @@ class IsLoggedIn
 
         $user_id = $this->checkPHPHashedPassword($username, $password);
         if ($user_id <= 0) {
-            $this->di_throttle->recordFailure($username, $ip_address);
+            // The failure admit() recorded stands.
             return LoginResult::BadCredentials;
         }
 
@@ -156,11 +168,8 @@ class IsLoggedIn
             user_agent: self::serverString('HTTP_USER_AGENT'),
         );
 
-        $cookie_options = \Auth\CookieOptions::build(
-            $this->di_config->domain_name,
-            $expires_ts
-        );
-        setcookie($this->di_config->cookie_name, $cookie, $cookie_options);
+        $cookie_options = \Auth\CookieOptions::build($expires_ts);
+        setcookie($this->cookieName(), $cookie, $cookie_options);
     }
 
 
@@ -183,21 +192,42 @@ class IsLoggedIn
      * Looks up hashed password for username, and checks it against the password provided
      * @return int The user_id, or 0 when the username or password is wrong.
      */
-    private function checkPHPHashedPassword(string $username, string $password): int
-    {
+    private function checkPHPHashedPassword(
+        string $username,
+        #[\SensitiveParameter] string $password,
+    ): int {
         $row = $this->getIDandPHPHashedPasswordForUsername($username);
         $hashed_password = $row['password_hash'] ?? null;
-        if (!is_string($hashed_password) || !password_verify($password, $hashed_password)) {
+        if (!is_string($hashed_password)) {
+            // No such user. Answering at once would tell a guesser so: a real
+            // username costs a bcrypt check, a made-up one would cost nothing,
+            // and the difference shows on a stopwatch whatever the page says.
+            password_verify($password, self::ABSENT_USER_HASH);
+            return 0;
+        }
+        if (!password_verify($password, $hashed_password)) {
             return 0;
         }
 
         $user_id = $row['user_id'] ?? null;
+        if (!is_numeric($user_id)) {
+            return 0;
+        }
 
-        return is_numeric($user_id) ? (int) $user_id : 0;
+        // The one moment the plain password is in hand: if the stored hash is
+        // weaker than password_hash() makes today (an older cost), replace it.
+        if (password_needs_rehash($hashed_password, PASSWORD_DEFAULT)) {
+            new \Database\PasswordRepository($this->di_pdo)->updatePasswordHash(
+                (int) $user_id,
+                password_hash($password, PASSWORD_DEFAULT),
+            );
+        }
+
+        return (int) $user_id;
     }
 
     private function getUserIdForCookieInDatabase(
-        string $cookie,
+        #[\SensitiveParameter] string $cookie,
         string $user_agent
     ): int {
         return $this->di_cookies->findUserId(
@@ -260,7 +290,7 @@ class IsLoggedIn
      */
     private function presentedCookieHash(): ?string
     {
-        $presented = $_COOKIE[$this->di_config->cookie_name] ?? '';
+        $presented = $_COOKIE[$this->cookieName()] ?? '';
         return is_string($presented) && $presented !== '' ? hash('sha256', $presented) : null;
     }
 
@@ -282,18 +312,24 @@ class IsLoggedIn
         $this->who_is_logged_in = 0;
         $this->killCookie();
         session_destroy();
-        session_start();
+        Session::start();
         session_regenerate_id();
     }
 
     private function killCookie(): void
     {
-        $cookie_options = \Auth\CookieOptions::build(
-            $this->di_config->domain_name,
-            time() - 3600
-        );
-        setcookie($this->di_config->cookie_name, '', $cookie_options);
+        $cookie_options = \Auth\CookieOptions::build(time() - 3600);
+        setcookie($this->cookieName(), '', $cookie_options);
         $this->who_is_logged_in = 0;
+    }
+
+    /**
+     * The remember-me cookie's name in the browser: Config's cookie_name
+     * behind the __Host- prefix. Every read and write of the cookie uses it.
+     */
+    private function cookieName(): string
+    {
+        return CookieOptions::name($this->di_config->cookie_name);
     }
 
     /**

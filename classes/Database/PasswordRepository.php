@@ -47,8 +47,10 @@ class PasswordRepository
      * @param string $password
      * @return bool
      */
-    public function verifyPassword(int $user_id, string $password): bool
-    {
+    public function verifyPassword(
+        int $user_id,
+        #[\SensitiveParameter] string $password,
+    ): bool {
         $stored_hash = $this->getPasswordHashByUserId($user_id);
 
         if ($stored_hash === null) {
@@ -66,8 +68,11 @@ class PasswordRepository
      * @param string $new_password
      * @return array{success: bool, message: string}
      */
-    public function changePassword(int $user_id, string $current_password, string $new_password): array
-    {
+    public function changePassword(
+        int $user_id,
+        #[\SensitiveParameter] string $current_password,
+        #[\SensitiveParameter] string $new_password,
+    ): array {
         // Verify current password
         if (!$this->verifyPassword($user_id, $current_password)) {
             return [

@@ -8,6 +8,20 @@ use Codeception\Test\Unit;
 
 class TemplateTest extends Unit
 {
+    protected function _before(): void
+    {
+        // The logged-in menu holds a form, and its CSRF field needs a session
+        // to keep the token in. The token is fixed here: a random one is 64
+        // hex digits in every page, and now and then that spells whatever a
+        // test asserts is absent (the "99" below, about one run in five).
+        $_SESSION = [\Security\CSRFProtectaroo::FIELD => 'token-for-template-tests'];
+    }
+
+    protected function _after(): void
+    {
+        unset($_SESSION);
+    }
+
     private function template(int $admin_count = 0): \View\Template
     {
         $config = new \Config\Config();
@@ -128,7 +142,7 @@ class TemplateTest extends Unit
         $html = $this->menuFor('', false);
 
         $this->assertStringContainsString('href="/login/"', $html);
-        $this->assertStringNotContainsString('href="/logout/"', $html);
+        $this->assertStringNotContainsString('/logout/', $html);
         $this->assertStringNotContainsString('href="/profile/devices/"', $html);
         $this->assertStringNotContainsString('href="/admin/"', $html);
     }
@@ -139,9 +153,18 @@ class TemplateTest extends Unit
 
         $this->assertStringContainsString('href="/profile/"', $html);
         $this->assertStringContainsString('href="/profile/devices/"', $html);
-        $this->assertStringContainsString('href="/logout/"', $html);
         $this->assertStringNotContainsString('href="/login/"', $html);
         $this->assertStringNotContainsString('href="/admin/"', $html);
+    }
+
+    public function testLogoutIsAPostFormCarryingTheCsrfToken(): void
+    {
+        $html = $this->menuFor('Rob', false);
+
+        $this->assertStringContainsString('<form action="/logout/" method="POST"', $html);
+        $this->assertStringContainsString('name="csrf_token" value="token-for-template-tests"', $html);
+        // A link would be a GET, which any other site can make this browser send.
+        $this->assertStringNotContainsString('href="/logout/"', $html);
     }
 
     public function testMenuOffersAdminOnlyToAdmins(): void

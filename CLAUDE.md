@@ -81,10 +81,15 @@ This is a minimalist PHP web application framework designed for DreamHost deploy
     CSRF token, issue the remember-me cookie, record the user). **Any new way in — emailed
     sign-in links, OAuth — must call `establishSession()` and nothing else.**
   - Login failures get one generic message; naming which half was wrong enumerates usernames.
+    So does answering faster for a username that does not exist, so that case runs
+    `password_verify()` against a fixed hash and discards the result.
   - `attemptPasswordLogin()` returns `Auth\LoginResult` (`Success`, `BadCredentials`,
     `Throttled`). `Auth\LoginThrottle` counts failures in `login_attempts`: 5 per username or
     20 per IP inside 15 minutes and the password is not even checked. A success clears that
-    username's count. A missing `login_attempts` table (site deployed before the migration)
+    username's count. The login path calls `admit()`, which records the attempt *before*
+    the password check and counts afterwards; check-then-record let a parallel burst
+    through. Don't put `isThrottled()` back in front of a password check.
+    A missing `login_attempts` table (site deployed before the migration)
     means no throttle, not no login.
   - Remember-me cookies live in `cookies` via `Database\CookieRepository`. Each row has an
     `expires_at` the lookup honours (the browser's expiry is not trusted), and issuing a cookie
@@ -97,6 +102,22 @@ This is a minimalist PHP web application framework designed for DreamHost deploy
   - Device names come from `cookies.user_agent`, added by `02_devices/alter_cookies_user_agent.sql`
     (applied from the admin dashboard). Until a site applies it, `CookieRepository` falls back
     to the old columns: logins keep working and devices show as "Unknown device".
+
+### Passwords
+
+- **A new password goes through `Auth\PasswordPolicy::problems()`**, at registration and on
+  a password change; an empty list means acceptable. Login never asks, so old passwords
+  keep working. Any new place a password is set (a reset link, an admin form) calls it too.
+- The rules are NIST SP 800-63B-4's for a password that is the only factor: at least 15
+  characters counted as code points, and **no composition rules**. Don't add "one digit,
+  one symbol"; NIST forbids it.
+- The 72-byte maximum is bcrypt's, which ignores anything longer; refusing is the
+  alternative to truncating, which NIST also forbids. It goes away only with a different
+  algorithm (argon2id, if every site's PHP has it).
+- Not done: checking new passwords against a list of breached ones, which NIST also asks.
+- `password_needs_rehash()` runs at login and upgrades a hash made at an older cost.
+- A password parameter is declared `#[\SensitiveParameter]`, so a stack trace shows a
+  placeholder for it.
 
 ### CSRF
 
@@ -112,13 +133,37 @@ This is a minimalist PHP web application framework designed for DreamHost deploy
   `<?= $csrf->field() ?>` inside the `<form>`. `fetch()` callers: send the `X-CSRF-Token`
   header with `$csrf->getToken()` (always `json_encode()` it into JS). See
   `templates/admin/migrate_tables.tpl.php`.
+- **Nothing changes state on a GET**, because the check above lets every GET through.
+  Logout is the example: `/logout/` acts on POST only, and the menu's Logout is a form
+  with `$csrf->field()`, not a link.
 - No `global` and no `$GLOBALS` (mg's MLAPHP step): a function takes what it needs as a
   parameter, a class as a constructor argument, a template as a `set()` variable.
+- **Start a session with `\Auth\Session::start()`, never a bare `session_start()`.** The
+  session holds the token, so whoever can choose a visitor's session id knows it. The
+  cookie is `__Host-session`: the prefix makes browsers refuse it unless it is Secure,
+  host-only and `Path=/`, so a sibling subdomain cannot plant one. Three callers:
+  `prepend.php`, `/login/register.php` and `IsLoggedIn::logout()`. Over plain HTTP there
+  is no session, so no form works; that is intended.
 - `/login/register.php` skips `prepend.php`, so it starts the session and checks the token
   itself, and only on the open-registration path. The first-admin path is gated by the
   bootstrap token instead.
 - The auth cookie is `SameSite=Lax` (see `Auth\CookieOptions`): `Strict` logged out anyone
   arriving by link from another site. Lax is the backstop; the token is the defence.
+- The auth cookie is host-only and named `__Host-<cookie_name>` (`CookieOptions::name()`).
+  Never give it a `domain`: that sends the login token to every subdomain, and browsers
+  drop a `__Host-` cookie that has one. `$config->domain_name` is only the `HTTP_HOST`
+  check now.
+
+### Response headers
+
+- `Security\Headers::send()` runs in `prepend.php` and `/login/register.php` before any
+  output: `nosniff`, no framing by other sites (`frame-ancestors 'none'` and
+  `X-Frame-Options: DENY`), `base-uri 'self'`, `Referrer-Policy: same-origin` and a year of
+  HSTS for this host only.
+- There is no `script-src`, deliberately: templates carry inline scripts
+  (`templates/admin/migrate_tables.tpl.php`). Move those to files before adding one.
+- A site that must be framed, or must send a referrer, changes `Headers::all()` and its
+  test, with the reason in the comment there.
 
 ## Important Files
 
@@ -133,9 +178,8 @@ This is a minimalist PHP web application framework designed for DreamHost deploy
 - Composer is dev-only (codeception, phpcs); the app itself is pure PHP with a custom
   autoloader and no runtime dependencies. `vendor/` is gitignored — populate it with
   the containerized composer command below. Nothing in `vendor/` deploys.
-- Debug mode available via `?debug=1` URL parameter
 - Uses `\PrintRob\Debug::printRob()` for debugging output
-- Error display enabled in `prepend.php` for development
+- Errors are logged, not displayed, unless `Config.php` sets `$display_errors = true`
 - Templates use `.tpl.php` extension and PHP template syntax
 
 ### Including prepend.php
@@ -202,8 +246,8 @@ the current file. The URL only has to change.
 
 ### Local Development
 - No build step - pure PHP development (tests and style gates below)
-- PHP errors displayed on screen via `prepend.php` configuration
-- Debug mode: Add `?debug=1` to any URL for additional debugging output
+- PHP errors go to the error log; set `$display_errors = true` in your own `Config.php` to see them
+  on screen
 - Use `\PrintRob\Debug::printRob($variable)` for debugging (similar to `var_dump` but formatted)
 
 ### Deploying a branch
@@ -243,9 +287,17 @@ Setup and fixing:
       docker run --rm -e COMPOSER_HOME=/tmp/composer -v "$PWD":/app -w /app \
         composer:2 composer install --no-interaction
 
-  New sites run PHP 8.5 or later: `composer.json` requires it, PHPStan analyses
-  as 8.5 (`phpVersion` in `phpstan.neon`), and the hook and standards-mcp
-  (`php_target` in its `repos.yaml`) use the php8.5 runner. Change all of them
+  **Sites run PHP 8.6 or later, and refuse to run on anything older**:
+  `Version\Php::requireFloor()` is the first thing `prepend.php` and
+  `/login/register.php` do, and it answers 503 below 8.6.
+
+  The tooling trails that by one version, on purpose. No php8.6 runner image
+  exists yet (the official `php:8.6-cli` image ships without `pecl`, so the
+  runner's pcov will not install; standards-mcp `84aeeba`), so `composer.json`
+  still says `>=8.5`, PHPStan analyses as 8.5 (`phpVersion` in `phpstan.neon`),
+  and the hook and standards-mcp (`php_target` in its `repos.yaml`) use the
+  php8.5 runner. Until that image builds, **write nothing that PHP 8.5 cannot
+  parse**: the gates could not check it. When it builds, change all four
   together. `config.platform.php` pins resolution to php 8.5 (the runner's php) —
   don't remove it, or composer will resolve packages too new to parse.
 
@@ -330,5 +382,8 @@ trial result: `docs/superpowers/specs/2026-11-12-infection-mutation-testing-desi
 
 - `prepend.php` calls `DBExistaroo::checkaroo()`, which returns an array of errors
 - The sentinel error `YallGotAnyMoreOfThemUsers` is what triggers the registration redirect
-- All PHP errors are displayed to screen during development (`ini_set` calls at the top of `prepend.php`)
-- Template system supports debug context via `?debug=1` parameter
+- **Errors are hidden by default.** `Security\ErrorOutput::hide()` runs first in `prepend.php` and
+  `/login/register.php`: errors are logged, and an uncaught exception gets a plain 500 page and a
+  one-line log entry without the stack trace (a trace carries arguments). `$config->display_errors
+  = true` calls `show()` and puts everything back on screen. Never set that on a site strangers
+  can reach, and never `ini_set('display_errors', ...)` anywhere else.

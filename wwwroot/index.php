@@ -16,11 +16,6 @@ include_once $matches[1] . '/prepend.php';
  * @var \Auth\IsLoggedIn $is_logged_in
  */
 
-$debugLevel = filter_var($_GET['debug'] ?? 0, FILTER_VALIDATE_INT) ?: 0;
-if ($debugLevel > 0) {
-    echo "<pre>Debug Level: $debugLevel</pre>";
-}
-
 # A Config.php written before $site_title existed should still render a page.
 // @phpstan-ignore nullCoalesce.property (an older Config.php may not declare it)
 $site_title = $config->site_title ?? 'Site';

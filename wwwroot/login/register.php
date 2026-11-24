@@ -13,19 +13,37 @@ include_once $matches[1] . '/classes/Mlaphp/Autoloader.php';
 $autoloader = new \Mlaphp\Autoloader();
 spl_autoload_register($autoloader->load(...));
 
+// prepend.php makes the same check; this page runs without it.
+\Version\Php::requireFloor();
+
+// Errors go to the log until Config says otherwise, below.
+\Security\ErrorOutput::hide();
+
+// Before any output, so every answer carries them, the error pages included.
+\Security\Headers::send();
+
 $mla_request = new \Mlaphp\Request();
 
 // Same PHP session prepend.php starts, so the CSRF token is shared with the
 // rest of the site. Only the open-registration path below checks it.
-session_start();
+\Auth\Session::start();
 $csrfProtect = new \Security\CSRFProtectaroo($mla_request);
 
 try {
     $config = new \Config\Config();
     // @phpstan-ignore catch.neverThrown (the autoloader throws when Config.php is missing)
 } catch (\Exception $e) {
-    echo "Couldn't create Config cause " . $e->getMessage();
+    // The message names the missing file's path, so it is logged, not shown.
+    error_log("Couldn't create Config: " . $e->getMessage());
+    http_response_code(503);
+    echo "<h1>Site unavailable</h1><p>This site is not configured yet.</p>";
     exit;
+}
+
+// @phpstan-ignore nullCoalesce.property (an older Config.php may not declare it)
+$show_errors = $config->display_errors ?? false;
+if ($show_errors) {
+    \Security\ErrorOutput::show();
 }
 
 $mla_database = \Database\Base::getPDO($config);
@@ -91,6 +109,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     if (empty($password)) {
         $errors[] = "Password is required.";
+    } else {
+        // The first admin's password is held to the policy like anyone's.
+        $errors = [...$errors, ...\Auth\PasswordPolicy::problems($password)];
     }
     if ($password !== $password_confirm) {
         $errors[] = "Passwords do not match.";
@@ -148,7 +169,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($e->getCode() == '23000') { // Duplicate key error
             echo "<h1>Error</h1><p>User already exists. Try a different username.</p>";
         } else {
-            echo "<h1>Unexpected Error</h1><pre>" . htmlspecialchars($e->getMessage()) . "</pre>";
+            error_log("Registration failed: " . $e->getMessage());
+            echo "<h1>Unexpected Error</h1><p>The account could not be created. The error has been logged.</p>";
         }
     }
 

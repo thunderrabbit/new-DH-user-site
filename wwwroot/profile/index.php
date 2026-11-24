@@ -42,6 +42,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     if (empty($new_password)) {
         $errors[] = "New password is required.";
+    } else {
+        // Only the new password: the current one may predate the policy.
+        $errors = [...$errors, ...\Auth\PasswordPolicy::problems($new_password)];
     }
     if (empty($confirm_password)) {
         $errors[] = "Password confirmation is required.";
@@ -72,7 +75,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $errors[] = $result['message'];
             }
         } catch (\Exception $e) {
-            $errors[] = "An error occurred while changing password: " . $e->getMessage();
+            error_log("Password change failed: " . $e->getMessage());
+            $errors[] = "An error occurred while changing password. It has been logged.";
         }
     }
 
