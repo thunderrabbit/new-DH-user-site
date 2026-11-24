@@ -24,8 +24,8 @@
 
                         <div class="PageRow noborder">
                             <label for="req2">Password:</label>
-                            <div class="PageInput"><input type="password" name="pass" class="validate[required]" id="req2" /></div>
-                            <div class="fix"></div>
+                            <div class="PageInput"><input type="password" name="pass" class="validate[required]" id="req2" minlength="<?= \Auth\PasswordPolicy::MIN_CHARACTERS ?>" autocomplete="new-password" /></div>
+                            <div class="fix">At least <?= \Auth\PasswordPolicy::MIN_CHARACTERS ?> characters. Several unrelated words work well.</div>
                         </div>
 
                         <div class="PageRow noborder">
