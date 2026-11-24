@@ -13,7 +13,11 @@ include_once $matches[1] . '/prepend.php';
  * @var \Auth\IsLoggedIn $is_logged_in
  */
 
-$is_logged_in->logout();
-// We logged out.. yay!
+// Logging out revokes every session the user has, so it takes a POST, and
+// prepend.php has already rejected a POST without the CSRF token. A GET (a
+// link, an <img>, a redirect from another site) logs nobody out.
+if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
+    $is_logged_in->logout();
+}
 header(header: "Location: /");
 exit;
