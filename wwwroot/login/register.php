@@ -145,7 +145,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     // Hash password
-    $hash = password_hash($password, PASSWORD_DEFAULT);
+    $hash = \Auth\PasswordHash::make($password);
 
     try {
         $role = $creating_admin_user ? "admin" : "user";

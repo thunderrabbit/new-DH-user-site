@@ -82,7 +82,7 @@ class PasswordRepository
         }
 
         // Hash new password
-        $new_password_hash = password_hash($new_password, PASSWORD_DEFAULT);
+        $new_password_hash = \Auth\PasswordHash::make($new_password);
 
         // Update password
         $this->updatePasswordHash($user_id, $new_password_hash);
