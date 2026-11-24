@@ -93,6 +93,30 @@ class SchemaPathTest extends Unit
         }
     }
 
+    public function testResolveRejectsASymlinkIntoASiblingWhoseNameStartsTheSame(): void
+    {
+        // db_schemas_old is not inside db_schemas, though its path begins
+        // with the same characters.
+        $app = sys_get_temp_dir() . '/schemapath_' . bin2hex(random_bytes(6));
+        mkdir($app . '/db_schemas', 0700, true);
+        mkdir($app . '/db_schemas_old');
+        file_put_contents($app . '/db_schemas_old/secret.sql', 'SELECT 1;');
+        symlink($app . '/db_schemas_old', $app . '/db_schemas/00_link');
+
+        try {
+            new \Database\SchemaPath($app)->resolve('00_link/secret.sql');
+            $this->fail('a symlink into db_schemas_old was resolved');
+        } catch (\Exception $e) {
+            $this->assertStringContainsString('escapes base directory', $e->getMessage());
+        } finally {
+            unlink($app . '/db_schemas/00_link');
+            unlink($app . '/db_schemas_old/secret.sql');
+            rmdir($app . '/db_schemas_old');
+            rmdir($app . '/db_schemas');
+            rmdir($app);
+        }
+    }
+
     public function testResolveWithRealFile(): void
     {
         // Use actual migration file from the project
