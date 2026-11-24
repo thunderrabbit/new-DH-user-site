@@ -16,6 +16,9 @@ spl_autoload_register($autoloader->load(...));
 // prepend.php makes the same check; this page runs without it.
 \Version\Php::requireFloor();
 
+// Errors go to the log until Config says otherwise, below.
+\Security\ErrorOutput::hide();
+
 $mla_request = new \Mlaphp\Request();
 
 // Same PHP session prepend.php starts, so the CSRF token is shared with the
@@ -29,6 +32,11 @@ try {
 } catch (\Exception $e) {
     echo "Couldn't create Config cause " . $e->getMessage();
     exit;
+}
+
+// @phpstan-ignore nullCoalesce.property (an older Config.php may not declare it)
+if ($config->display_errors ?? false) {
+    \Security\ErrorOutput::show();
 }
 
 $mla_database = \Database\Base::getPDO($config);

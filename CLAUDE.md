@@ -145,7 +145,7 @@ This is a minimalist PHP web application framework designed for DreamHost deploy
   the containerized composer command below. Nothing in `vendor/` deploys.
 - Debug mode available via `?debug=1` URL parameter
 - Uses `\PrintRob\Debug::printRob()` for debugging output
-- Error display enabled in `prepend.php` for development
+- Errors are logged, not displayed, unless `Config.php` sets `$display_errors = true`
 - Templates use `.tpl.php` extension and PHP template syntax
 
 ### Including prepend.php
@@ -212,7 +212,8 @@ the current file. The URL only has to change.
 
 ### Local Development
 - No build step - pure PHP development (tests and style gates below)
-- PHP errors displayed on screen via `prepend.php` configuration
+- PHP errors go to the error log; set `$display_errors = true` in your own `Config.php` to see them
+  on screen
 - Debug mode: Add `?debug=1` to any URL for additional debugging output
 - Use `\PrintRob\Debug::printRob($variable)` for debugging (similar to `var_dump` but formatted)
 
@@ -348,5 +349,9 @@ trial result: `docs/superpowers/specs/2026-11-12-infection-mutation-testing-desi
 
 - `prepend.php` calls `DBExistaroo::checkaroo()`, which returns an array of errors
 - The sentinel error `YallGotAnyMoreOfThemUsers` is what triggers the registration redirect
-- All PHP errors are displayed to screen during development (`ini_set` calls at the top of `prepend.php`)
+- **Errors are hidden by default.** `Security\ErrorOutput::hide()` runs first in `prepend.php` and
+  `/login/register.php`: errors are logged, and an uncaught exception gets a plain 500 page and a
+  one-line log entry without the stack trace (a trace carries arguments). `$config->display_errors
+  = true` calls `show()` and puts everything back on screen. Never set that on a site strangers
+  can reach, and never `ini_set('display_errors', ...)` anywhere else.
 - Template system supports debug context via `?debug=1` parameter
