@@ -65,7 +65,9 @@ class IsLoggedIn
         #[\SensitiveParameter] string $password,
     ): LoginResult {
         $ip_address = self::serverString('REMOTE_ADDR');
-        if ($this->di_throttle->isThrottled($username, $ip_address)) {
+        // admit() counts this attempt as a failure before anything else, so
+        // parallel guesses cannot slip past the limit together.
+        if (!$this->di_throttle->admit($username, $ip_address)) {
             // Do not even look at the password: a throttled guess must cost
             // the attacker nothing in information and us nothing in bcrypt.
             return LoginResult::Throttled;
@@ -73,7 +75,7 @@ class IsLoggedIn
 
         $user_id = $this->checkPHPHashedPassword($username, $password);
         if ($user_id <= 0) {
-            $this->di_throttle->recordFailure($username, $ip_address);
+            // The failure admit() recorded stands.
             return LoginResult::BadCredentials;
         }
 

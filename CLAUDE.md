@@ -84,7 +84,9 @@ This is a minimalist PHP web application framework designed for DreamHost deploy
   - `attemptPasswordLogin()` returns `Auth\LoginResult` (`Success`, `BadCredentials`,
     `Throttled`). `Auth\LoginThrottle` counts failures in `login_attempts`: 5 per username or
     20 per IP inside 15 minutes and the password is not even checked. A success clears that
-    username's count. A missing `login_attempts` table (site deployed before the migration)
+    username's count. The login path calls `admit()`, which records the attempt *before*
+    the password check and counts afterwards; check-then-record let a parallel burst
+    through. Don't put `isThrottled()` back in front of a password check. A missing `login_attempts` table (site deployed before the migration)
     means no throttle, not no login.
   - Remember-me cookies live in `cookies` via `Database\CookieRepository`. Each row has an
     `expires_at` the lookup honours (the browser's expiry is not trusted), and issuing a cookie
