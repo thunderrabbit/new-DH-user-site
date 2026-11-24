@@ -114,6 +114,12 @@ This is a minimalist PHP web application framework designed for DreamHost deploy
   `templates/admin/migrate_tables.tpl.php`.
 - No `global` and no `$GLOBALS` (mg's MLAPHP step): a function takes what it needs as a
   parameter, a class as a constructor argument, a template as a `set()` variable.
+- **Start a session with `\Auth\Session::start()`, never a bare `session_start()`.** The
+  session holds the token, so whoever can choose a visitor's session id knows it. The
+  cookie is `__Host-session`: the prefix makes browsers refuse it unless it is Secure,
+  host-only and `Path=/`, so a sibling subdomain cannot plant one. Three callers:
+  `prepend.php`, `/login/register.php` and `IsLoggedIn::logout()`. Over plain HTTP there
+  is no session, so no form works; that is intended.
 - `/login/register.php` skips `prepend.php`, so it starts the session and checks the token
   itself, and only on the open-registration path. The first-admin path is gated by the
   bootstrap token instead.

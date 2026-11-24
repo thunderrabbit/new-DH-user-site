@@ -282,7 +282,7 @@ class IsLoggedIn
         $this->who_is_logged_in = 0;
         $this->killCookie();
         session_destroy();
-        session_start();
+        Session::start();
         session_regenerate_id();
     }
 
