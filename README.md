@@ -114,7 +114,7 @@ and a clean layout system with cookie-based authentication.
    empty, every URL redirects to `/login/register.php`.
 
 7. **Create the first admin.** On `/login/register.php`, paste the token from step 4 along
-   with the username and password you want. The gate exists because a fresh vhost is found
+   with the username and password you want (15 characters or more; see `Auth\PasswordPolicy`). The gate exists because a fresh vhost is found
    by scanners quickly, and without it the first visitor would be handed the admin account.
    The page tells an anonymous visitor nothing about where the token lives.
 

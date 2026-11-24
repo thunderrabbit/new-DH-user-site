@@ -88,7 +88,8 @@ This is a minimalist PHP web application framework designed for DreamHost deploy
     20 per IP inside 15 minutes and the password is not even checked. A success clears that
     username's count. The login path calls `admit()`, which records the attempt *before*
     the password check and counts afterwards; check-then-record let a parallel burst
-    through. Don't put `isThrottled()` back in front of a password check. A missing `login_attempts` table (site deployed before the migration)
+    through. Don't put `isThrottled()` back in front of a password check.
+    A missing `login_attempts` table (site deployed before the migration)
     means no throttle, not no login.
   - Remember-me cookies live in `cookies` via `Database\CookieRepository`. Each row has an
     `expires_at` the lookup honours (the browser's expiry is not trusted), and issuing a cookie
@@ -101,6 +102,22 @@ This is a minimalist PHP web application framework designed for DreamHost deploy
   - Device names come from `cookies.user_agent`, added by `02_devices/alter_cookies_user_agent.sql`
     (applied from the admin dashboard). Until a site applies it, `CookieRepository` falls back
     to the old columns: logins keep working and devices show as "Unknown device".
+
+### Passwords
+
+- **A new password goes through `Auth\PasswordPolicy::problems()`**, at registration and on
+  a password change; an empty list means acceptable. Login never asks, so old passwords
+  keep working. Any new place a password is set (a reset link, an admin form) calls it too.
+- The rules are NIST SP 800-63B-4's for a password that is the only factor: at least 15
+  characters counted as code points, and **no composition rules**. Don't add "one digit,
+  one symbol"; NIST forbids it.
+- The 72-byte maximum is bcrypt's, which ignores anything longer; refusing is the
+  alternative to truncating, which NIST also forbids. It goes away only with a different
+  algorithm (argon2id, if every site's PHP has it).
+- Not done: checking new passwords against a list of breached ones, which NIST also asks.
+- `password_needs_rehash()` runs at login and upgrades a hash made at an older cost.
+- A password parameter is declared `#[\SensitiveParameter]`, so a stack trace shows a
+  placeholder for it.
 
 ### CSRF
 
