@@ -52,7 +52,8 @@ class DBExistaroo
         if (!$this->domainMatches()) {
             $errors[] = "Domain mismatch: Current domain does not match "
                 . "configured domain '{$this->config->domain_name}'.";
-            echo "Go fix the value of domain name in classes/Config/Config.php (and probably app_path as well).";
+            $errors[] = "Go fix the value of domain name in classes/Config/Config.php "
+                . "(and probably app_path as well).";
             return $errors;
         }
 

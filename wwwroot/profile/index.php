@@ -72,7 +72,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $errors[] = $result['message'];
             }
         } catch (\Exception $e) {
-            $errors[] = "An error occurred while changing password: " . $e->getMessage();
+            error_log("Password change failed: " . $e->getMessage());
+            $errors[] = "An error occurred while changing password. It has been logged.";
         }
     }
 

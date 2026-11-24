@@ -30,12 +30,16 @@ try {
     $config = new \Config\Config();
     // @phpstan-ignore catch.neverThrown (the autoloader throws when Config.php is missing)
 } catch (\Exception $e) {
-    echo "Couldn't create Config cause " . $e->getMessage();
+    // The message names the missing file's path, so it is logged, not shown.
+    error_log("Couldn't create Config: " . $e->getMessage());
+    http_response_code(503);
+    echo "<h1>Site unavailable</h1><p>This site is not configured yet.</p>";
     exit;
 }
 
 // @phpstan-ignore nullCoalesce.property (an older Config.php may not declare it)
-if ($config->display_errors ?? false) {
+$show_errors = $config->display_errors ?? false;
+if ($show_errors) {
     \Security\ErrorOutput::show();
 }
 
@@ -159,7 +163,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($e->getCode() == '23000') { // Duplicate key error
             echo "<h1>Error</h1><p>User already exists. Try a different username.</p>";
         } else {
-            echo "<h1>Unexpected Error</h1><pre>" . htmlspecialchars($e->getMessage()) . "</pre>";
+            error_log("Registration failed: " . $e->getMessage());
+            echo "<h1>Unexpected Error</h1><p>The account could not be created. The error has been logged.</p>";
         }
     }
 
