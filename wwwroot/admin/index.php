@@ -31,6 +31,9 @@ if ($is_logged_in->isLoggedIn() && $is_logged_in->isAdmin()) {
     $page->set(name: "allow_registration", value: $config->allow_registration ?? true);
     $page->set(name: "username", value: $is_logged_in->getLoggedInUsername());
 
+    // Asked here because this is the served PHP; see Auth\Argon2id.
+    $page->set(name: "password_hashing", value: \Auth\Argon2id::report());
+
     // Due notifications (mg #851), so a chip higher than the migration list says why.
     $page->set(name: "due_notifications", value: new \Admin\Notifications($mla_database)->dueCount());
 
