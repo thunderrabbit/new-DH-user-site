@@ -13,6 +13,9 @@ include_once $matches[1] . '/classes/Mlaphp/Autoloader.php';
 $autoloader = new \Mlaphp\Autoloader();
 spl_autoload_register($autoloader->load(...));
 
+// prepend.php makes the same check; this page runs without it.
+\Version\Php::requireFloor();
+
 $mla_request = new \Mlaphp\Request();
 
 // Same PHP session prepend.php starts, so the CSRF token is shared with the
