@@ -137,6 +137,17 @@ This is a minimalist PHP web application framework designed for DreamHost deploy
   drop a `__Host-` cookie that has one. `$config->domain_name` is only the `HTTP_HOST`
   check now.
 
+### Response headers
+
+- `Security\Headers::send()` runs in `prepend.php` and `/login/register.php` before any
+  output: `nosniff`, no framing by other sites (`frame-ancestors 'none'` and
+  `X-Frame-Options: DENY`), `base-uri 'self'`, `Referrer-Policy: same-origin` and a year of
+  HSTS for this host only.
+- There is no `script-src`, deliberately: templates carry inline scripts
+  (`templates/admin/migrate_tables.tpl.php`). Move those to files before adding one.
+- A site that must be framed, or must send a referrer, changes `Headers::all()` and its
+  test, with the reason in the comment there.
+
 ## Important Files
 
 - `prepend.php` - Main application bootstrap (included by all pages)
