@@ -12,14 +12,6 @@ namespace Auth;
 
 class IsLoggedIn
 {
-    /**
-     * A bcrypt hash at password_hash()'s default cost (12), checked when the
-     * username does not exist so that a miss takes as long as a wrong
-     * password. Its result is thrown away. Regenerate it if PHP's default
-     * cost changes, or the two cases drift apart again.
-     */
-    private const string ABSENT_USER_HASH = '$2y$12$CNNMbz7HrYFfGv3BK2PH.uNFv1u/rjjvtBsMzzvkhF69Rvm14J8u6';
-
     private int $who_is_logged_in = 0;
 
     private string $loggedInUsername = 'YUNOset?'; // default value, should be overwritten if user is logged in
@@ -202,7 +194,9 @@ class IsLoggedIn
             // No such user. Answering at once would tell a guesser so: a real
             // username costs a bcrypt check, a made-up one would cost nothing,
             // and the difference shows on a stopwatch whatever the page says.
-            password_verify($password, self::ABSENT_USER_HASH);
+            // So check against a hash of the kind real users have, and throw
+            // the answer away.
+            password_verify($password, PasswordHash::absentUserHash());
             return 0;
         }
         if (!password_verify($password, $hashed_password)) {
