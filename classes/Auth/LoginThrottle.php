@@ -39,39 +39,79 @@ class LoginThrottle
         $this->now = $now ?? new \DateTimeImmutable();
     }
 
-    public function isThrottled(string $username, string $ip_address): bool
+    /**
+     * May this attempt check a password? The login path asks this, once,
+     * BEFORE it looks at the password.
+     *
+     * The attempt is written down as a failure first and counted second, so
+     * a burst of parallel guesses cannot all read "under the limit" before
+     * any of them has been recorded: each one sees the rows of those that
+     * got in ahead of it. An attempt over the limit takes its own row back
+     * out, so being refused does not lengthen the lock. One that is admitted
+     * keeps its row; a correct password then removes it (clearFailures()).
+     */
+    public function admit(string $username, string $ip_address): bool
     {
-        $since = $this->windowStart();
+        $attempt_id = $this->recordFailure($username, $ip_address);
 
-        $by_username = $this->countSince(
-            "SELECT COUNT(*) FROM `login_attempts` WHERE `username` = ? AND `attempted_at` > ?",
-            [self::normalizeUsername($username), $since]
-        );
-        if ($by_username >= self::MAX_FAILURES_PER_USERNAME) {
-            return true;
-        }
-
-        $ip_bin = IPBin::ipToBinary($ip_address);
-        if ($ip_bin === '') {
+        // Its own row is in the count, so "over" is past the limit, not at it.
+        $over_the_limit = $this->countForUsername($username) > self::MAX_FAILURES_PER_USERNAME
+            || $this->countForIp($ip_address) > self::MAX_FAILURES_PER_IP;
+        if ($over_the_limit) {
+            $this->run("DELETE FROM `login_attempts` WHERE `login_attempt_id` = ?", [$attempt_id]);
             return false;
         }
-        $by_ip = $this->countSince(
-            "SELECT COUNT(*) FROM `login_attempts` WHERE `ip_address` = ? AND `attempted_at` > ?",
-            [$ip_bin, $since]
-        );
-        return $by_ip >= self::MAX_FAILURES_PER_IP;
+        return true;
     }
 
-    public function recordFailure(string $username, string $ip_address): void
+    /**
+     * Would the next attempt be refused? Reads only, so two requests asking
+     * at once both hear "no": the login path uses admit() instead.
+     */
+    public function isThrottled(string $username, string $ip_address): bool
+    {
+        return $this->countForUsername($username) >= self::MAX_FAILURES_PER_USERNAME
+            || $this->countForIp($ip_address) >= self::MAX_FAILURES_PER_IP;
+    }
+
+    /**
+     * @return int The new row's login_attempt_id, or 0 without the table.
+     */
+    public function recordFailure(string $username, string $ip_address): int
     {
         $ip_bin = IPBin::ipToBinary($ip_address);
         $this->run(
             "INSERT INTO `login_attempts` (`username`, `ip_address`, `attempted_at`) VALUES (?, ?, ?)",
             [self::normalizeUsername($username), $ip_bin === '' ? null : $ip_bin, $this->format($this->now)]
         );
+        $attempt_id = (int) $this->di_pdo->lastInsertId();
         // Rows older than the window never count again. Purging on the failure
         // path keeps the table bounded without a cron entry.
         $this->run("DELETE FROM `login_attempts` WHERE `attempted_at` <= ?", [$this->windowStart()]);
+        return $attempt_id;
+    }
+
+    private function countForUsername(string $username): int
+    {
+        return $this->countSince(
+            "SELECT COUNT(*) FROM `login_attempts` WHERE `username` = ? AND `attempted_at` > ?",
+            [self::normalizeUsername($username), $this->windowStart()]
+        );
+    }
+
+    /**
+     * An address that is not an IP has no bucket of its own: 0.
+     */
+    private function countForIp(string $ip_address): int
+    {
+        $ip_bin = IPBin::ipToBinary($ip_address);
+        if ($ip_bin === '') {
+            return 0;
+        }
+        return $this->countSince(
+            "SELECT COUNT(*) FROM `login_attempts` WHERE `ip_address` = ? AND `attempted_at` > ?",
+            [$ip_bin, $this->windowStart()]
+        );
     }
 
     /**

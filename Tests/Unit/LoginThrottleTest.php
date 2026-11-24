@@ -131,6 +131,73 @@ class LoginThrottleTest extends Unit
         );
     }
 
+    public function testAdmitLetsInTheLimitAndRefusesTheNext(): void
+    {
+        $t = $this->at(0);
+        for ($i = 1; $i <= \Auth\LoginThrottle::MAX_FAILURES_PER_USERNAME; $i++) {
+            $this->assertTrue($t->admit('rob', '203.0.113.7'), "attempt $i is within the limit");
+        }
+        $this->assertFalse($t->admit('rob', '203.0.113.7'), 'one past the limit');
+    }
+
+    public function testAnAdmittedAttemptIsCountedBeforeItsPasswordIsChecked(): void
+    {
+        // This is what stops a parallel burst: the row exists as soon as
+        // admit() returns, so whoever asks next already sees it.
+        $this->at(0)->admit('rob', '203.0.113.7');
+
+        $this->assertSame(1, $this->countRows("SELECT COUNT(*) FROM login_attempts WHERE username = 'rob'"));
+    }
+
+    public function testARefusedAttemptLeavesNoRowSoTheLockDoesNotGrow(): void
+    {
+        $max = \Auth\LoginThrottle::MAX_FAILURES_PER_USERNAME;
+        $this->failTimes($this->at(0), $max);
+
+        $this->assertFalse($this->at(600)->admit('rob', '203.0.113.7'));
+        $this->assertSame($max, $this->countRows("SELECT COUNT(*) FROM login_attempts"));
+        // The five failures at t0 age out on schedule, refused tries or not.
+        $this->assertTrue($this->at(\Auth\LoginThrottle::WINDOW_SECONDS + 1)->admit('rob', '203.0.113.7'));
+    }
+
+    public function testARefusedAttemptTakesOutOnlyItsOwnRow(): void
+    {
+        $this->failTimes($this->at(0), \Auth\LoginThrottle::MAX_FAILURES_PER_USERNAME);
+        $this->at(0)->recordFailure('pat', '198.51.100.9');
+
+        $this->at(1)->admit('rob', '203.0.113.7');
+
+        $this->assertSame(1, $this->countRows("SELECT COUNT(*) FROM login_attempts WHERE username = 'pat'"));
+    }
+
+    public function testAdmitRefusesAnIpPastItsLimitWhateverTheUsername(): void
+    {
+        $t = $this->at(0);
+        for ($i = 1; $i <= \Auth\LoginThrottle::MAX_FAILURES_PER_IP; $i++) {
+            $this->assertTrue($t->admit("user$i", '203.0.113.7'), "attempt $i is within the IP's limit");
+        }
+        $this->assertFalse($t->admit('someone-new', '203.0.113.7'));
+        $this->assertTrue($t->admit('someone-new', '198.51.100.9'), 'another IP is not held back');
+    }
+
+    public function testACorrectPasswordGivesBackEveryAdmittedAttempt(): void
+    {
+        $t = $this->at(0);
+        for ($i = 1; $i <= \Auth\LoginThrottle::MAX_FAILURES_PER_USERNAME; $i++) {
+            $t->admit('rob', '203.0.113.7');
+        }
+        $t->clearFailures('rob');
+
+        $this->assertTrue($t->admit('rob', '203.0.113.7'));
+    }
+
+    public function testAdmitWithoutTheTableLetsEveryoneIn(): void
+    {
+        $this->pdo->exec("DROP TABLE login_attempts");
+
+        $this->assertTrue($this->at(0)->admit('rob', '203.0.113.7'));
+    }
+
     public function testMissingTableMeansNoThrottleAndNoCrash(): void
     {
         $this->pdo->exec("DROP TABLE login_attempts");
