@@ -17,7 +17,7 @@ spl_autoload_register($autoloader->load(...));
 // Nothing below was reviewed on a PHP older than this, so stop there.
 \Version\Php::requireFloor();
 
-session_start();
+\Auth\Session::start();
 
 $mla_request = new \Mlaphp\Request();
 $csrfProtect = new \Security\CSRFProtectaroo($mla_request);

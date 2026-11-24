@@ -20,7 +20,7 @@ $mla_request = new \Mlaphp\Request();
 
 // Same PHP session prepend.php starts, so the CSRF token is shared with the
 // rest of the site. Only the open-registration path below checks it.
-session_start();
+\Auth\Session::start();
 $csrfProtect = new \Security\CSRFProtectaroo($mla_request);
 
 try {
