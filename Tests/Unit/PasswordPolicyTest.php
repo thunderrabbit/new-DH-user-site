@@ -37,20 +37,57 @@ class PasswordPolicyTest extends Unit
         $this->assertSame([], PasswordPolicy::problems('123456789012345'));
     }
 
-    public function testSeventyTwoBytesIsTheMostBcryptReads(): void
+    public function testUnderArgon2idAPasswordPastBcryptsLimitIsFine(): void
     {
-        $this->assertSame([], PasswordPolicy::problems(str_repeat('a', 72)));
+        $this->assertSame([], PasswordPolicy::problems(str_repeat('a', 73), 'argon2id'));
+        $this->assertSame([], PasswordPolicy::problems(str_repeat('é', 37), 'argon2id'));
+    }
 
+    public function testUnderArgon2idTheBoundIsAThousandAndTwentyFourCharacters(): void
+    {
+        $this->assertSame([], PasswordPolicy::problems(str_repeat('a', 1024), 'argon2id'));
         $this->assertSame(
-            ["Password is too long: the limit is 72 bytes, which is 72 plain letters, or fewer accented ones."],
-            PasswordPolicy::problems(str_repeat('a', 73))
+            ["Password is too long: the limit is 1024 characters."],
+            PasswordPolicy::problems(str_repeat('a', 1025), 'argon2id')
         );
     }
 
-    public function testTheMaximumIsCountedInBytes(): void
+    public function testThatBoundIsCountedInCharactersNotBytes(): void
+    {
+        // 1024 characters, 2048 bytes.
+        $this->assertSame([], PasswordPolicy::problems(str_repeat('é', 1024), 'argon2id'));
+    }
+
+    public function testTheAlgorithmInUseIsTheDefault(): void
+    {
+        // The runner's PHP has argon2id, so 73 bytes is fine without saying so.
+        $this->assertSame([], PasswordPolicy::problems(str_repeat('a', 73)));
+    }
+
+    public function testUnderBcryptSeventyTwoBytesIsTheMostItReads(): void
+    {
+        $this->assertSame([], PasswordPolicy::problems(str_repeat('a', 72), '2y'));
+        $this->assertSame(
+            ["Password is too long: the limit is 72 bytes, which is 72 plain letters, or fewer accented ones."],
+            PasswordPolicy::problems(str_repeat('a', 73), '2y')
+        );
+    }
+
+    public function testUnderBcryptTheMaximumIsCountedInBytes(): void
     {
         // Thirty-seven characters, seventy-four bytes: bcrypt would drop the last one.
-        $this->assertSame([PasswordPolicy::TOO_LONG], PasswordPolicy::problems(str_repeat('é', 37)));
+        $this->assertSame(
+            [PasswordPolicy::TOO_LONG_FOR_BCRYPT],
+            PasswordPolicy::problems(str_repeat('é', 37), '2y')
+        );
+    }
+
+    public function testUnderBcryptTheArgon2idBoundDoesNotAlsoApply(): void
+    {
+        $this->assertSame(
+            [PasswordPolicy::TOO_LONG_FOR_BCRYPT],
+            PasswordPolicy::problems(str_repeat('a', 1025), '2y')
+        );
     }
 
     public function testANulByteIsRefusedBeforePasswordHashCanThrowOnIt(): void
