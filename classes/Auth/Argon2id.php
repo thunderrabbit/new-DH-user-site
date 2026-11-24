@@ -10,9 +10,10 @@ namespace Auth;
  * Asked on /admin/ because that runs under the web server's PHP. The shell's
  * `php` over ssh is a different build and proves nothing about this one.
  *
- * It matters for Auth\PasswordPolicy: bcrypt reads only 72 bytes, argon2id
- * has no such limit, and the template can change over only when every site's
- * PHP has it.
+ * Auth\PasswordHash hashes with argon2id when isListed() says so and with
+ * bcrypt otherwise, and under bcrypt Auth\PasswordPolicy caps new passwords
+ * at the 72 bytes it reads. The line on /admin/ tells a site's admin which
+ * of the two they are getting.
  */
 final class Argon2id
 {
