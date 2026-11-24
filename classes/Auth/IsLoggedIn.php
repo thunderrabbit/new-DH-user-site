@@ -156,10 +156,7 @@ class IsLoggedIn
             user_agent: self::serverString('HTTP_USER_AGENT'),
         );
 
-        $cookie_options = \Auth\CookieOptions::build(
-            $this->di_config->domain_name,
-            $expires_ts
-        );
+        $cookie_options = \Auth\CookieOptions::build($expires_ts);
         setcookie($this->di_config->cookie_name, $cookie, $cookie_options);
     }
 
@@ -288,10 +285,7 @@ class IsLoggedIn
 
     private function killCookie(): void
     {
-        $cookie_options = \Auth\CookieOptions::build(
-            $this->di_config->domain_name,
-            time() - 3600
-        );
+        $cookie_options = \Auth\CookieOptions::build(time() - 3600);
         setcookie($this->di_config->cookie_name, '', $cookie_options);
         $this->who_is_logged_in = 0;
     }

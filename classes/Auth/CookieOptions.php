@@ -20,14 +20,17 @@ class CookieOptions
      * CSRF token check in prepend.php is the real defence; SameSite is the
      * backstop. Do not loosen to None without a reason written here.
      *
-     * @return array{expires: int, path: string, domain: string, secure: bool, httponly: bool, samesite: 'Lax'}
+     * There is no `domain` key, on purpose. A cookie with a Domain attribute
+     * goes to every subdomain of that domain, and any of them may overwrite
+     * it; without one it belongs to the exact host that set it.
+     *
+     * @return array{expires: int, path: string, secure: bool, httponly: bool, samesite: 'Lax'}
      */
-    public static function build(string $domain_name, int $expires): array
+    public static function build(int $expires): array
     {
         return [
             'expires' => $expires,
             'path' => '/',
-            'domain' => $domain_name,
             'secure' => true,
             'httponly' => true,
             'samesite' => 'Lax'
