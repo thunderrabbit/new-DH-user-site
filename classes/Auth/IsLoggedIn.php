@@ -60,8 +60,10 @@ class IsLoggedIn
      * BadCredentials has no side effects; the caller shows one generic
      * message for it so a guesser cannot learn which usernames exist.
      */
-    public function attemptPasswordLogin(string $username, string $password): LoginResult
-    {
+    public function attemptPasswordLogin(
+        string $username,
+        #[\SensitiveParameter] string $password,
+    ): LoginResult {
         $ip_address = self::serverString('REMOTE_ADDR');
         if ($this->di_throttle->isThrottled($username, $ip_address)) {
             // Do not even look at the password: a throttled guess must cost
@@ -180,8 +182,10 @@ class IsLoggedIn
      * Looks up hashed password for username, and checks it against the password provided
      * @return int The user_id, or 0 when the username or password is wrong.
      */
-    private function checkPHPHashedPassword(string $username, string $password): int
-    {
+    private function checkPHPHashedPassword(
+        string $username,
+        #[\SensitiveParameter] string $password,
+    ): int {
         $row = $this->getIDandPHPHashedPasswordForUsername($username);
         $hashed_password = $row['password_hash'] ?? null;
         if (!is_string($hashed_password) || !password_verify($password, $hashed_password)) {
@@ -194,7 +198,7 @@ class IsLoggedIn
     }
 
     private function getUserIdForCookieInDatabase(
-        string $cookie,
+        #[\SensitiveParameter] string $cookie,
         string $user_agent
     ): int {
         return $this->di_cookies->findUserId(
