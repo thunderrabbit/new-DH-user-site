@@ -7,6 +7,27 @@ namespace Auth;
 class CookieOptions
 {
     /**
+     * Browsers accept a cookie whose name starts with this only over HTTPS,
+     * with Path=/ and with no Domain attribute, and refuse it otherwise. That
+     * turns "host-only" from something build() intends into something a
+     * sibling subdomain cannot undo by setting a cookie of the same name.
+     */
+    public const string HOST_PREFIX = '__Host-';
+
+    /**
+     * The cookie's name as the browser sees it: the site's configured name
+     * behind the __Host- prefix. A name that already has the prefix is left
+     * alone, so a Config.php may spell it out.
+     */
+    public static function name(string $configured_name): string
+    {
+        if (str_starts_with($configured_name, self::HOST_PREFIX)) {
+            return $configured_name;
+        }
+        return self::HOST_PREFIX . $configured_name;
+    }
+
+    /**
      * Options for setcookie()'s array form, with the security flags always on.
      *
      * PHP defaults `secure` and `httponly` to false when the keys are absent,

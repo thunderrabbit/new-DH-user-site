@@ -34,6 +34,21 @@ class CookieOptionsTest extends Unit
         $this->assertArrayNotHasKey('domain', \Auth\CookieOptions::build(1234567890));
     }
 
+    public function testTheNameGetsTheHostPrefix(): void
+    {
+        $this->assertSame('__Host-mysite', \Auth\CookieOptions::name('mysite'));
+    }
+
+    public function testANameAlreadyPrefixedIsNotPrefixedTwice(): void
+    {
+        $this->assertSame('__Host-mysite', \Auth\CookieOptions::name('__Host-mysite'));
+    }
+
+    public function testThePrefixMustLeadTheNameToCount(): void
+    {
+        $this->assertSame('__Host-my__Host-site', \Auth\CookieOptions::name('my__Host-site'));
+    }
+
     public function testPastExpiryIsAllowedForKillingTheCookie(): void
     {
         $options = \Auth\CookieOptions::build(-1);
