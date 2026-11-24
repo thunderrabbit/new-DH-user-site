@@ -10,8 +10,11 @@ class TemplateTest extends Unit
 {
     protected function _before(): void
     {
-        // The logged-in menu holds a form, and its CSRF field needs a session to keep the token in.
-        $_SESSION = [];
+        // The logged-in menu holds a form, and its CSRF field needs a session
+        // to keep the token in. The token is fixed here: a random one is 64
+        // hex digits in every page, and now and then that spells whatever a
+        // test asserts is absent (the "99" below, about one run in five).
+        $_SESSION = [\Security\CSRFProtectaroo::FIELD => 'token-for-template-tests'];
     }
 
     protected function _after(): void
@@ -157,10 +160,9 @@ class TemplateTest extends Unit
     public function testLogoutIsAPostFormCarryingTheCsrfToken(): void
     {
         $html = $this->menuFor('Rob', false);
-        $token = new \Security\CSRFProtectaroo(new \Mlaphp\Request())->getToken();
 
         $this->assertStringContainsString('<form action="/logout/" method="POST"', $html);
-        $this->assertStringContainsString('name="csrf_token" value="' . $token . '"', $html);
+        $this->assertStringContainsString('name="csrf_token" value="token-for-template-tests"', $html);
         // A link would be a GET, which any other site can make this browser send.
         $this->assertStringNotContainsString('href="/logout/"', $html);
     }
