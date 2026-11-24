@@ -111,11 +111,19 @@ This is a minimalist PHP web application framework designed for DreamHost deploy
 - The rules are NIST SP 800-63B-4's for a password that is the only factor: at least 15
   characters counted as code points, and **no composition rules**. Don't add "one digit,
   one symbol"; NIST forbids it.
-- The 72-byte maximum is bcrypt's, which ignores anything longer; refusing is the
-  alternative to truncating, which NIST also forbids. It goes away only with a different
-  algorithm (argon2id, if every site's PHP has it).
+- **Hash with `Auth\PasswordHash::make()`, never `password_hash()` directly.** It uses
+  argon2id where the PHP lists it and bcrypt where not; `/admin/` shows which
+  (`Auth\Argon2id`). `password_verify()` reads the algorithm from the stored hash, so old
+  bcrypt hashes still verify.
+- Under argon2id the maximum is 1024 characters, a bound on the work. Under the bcrypt
+  fallback it is 72 bytes, because bcrypt ignores anything longer and refusing is the
+  alternative to truncating, which NIST also forbids.
 - Not done: checking new passwords against a list of breached ones, which NIST also asks.
-- `password_needs_rehash()` runs at login and upgrades a hash made at an older cost.
+- `PasswordHash::needsRehash()` runs at login and replaces a bcrypt hash, or one made at an
+  older cost, with what `make()` produces today. Nobody resets a password for the change.
+- A username that does not exist is checked against `PasswordHash::absentUserHash()`, one
+  fixed hash per algorithm, so it takes as long as a wrong password. The unit test fails
+  if PHP's default cost moves and those hashes fall behind.
 - A password parameter is declared `#[\SensitiveParameter]`, so a stack trace shows a
   placeholder for it.
 
