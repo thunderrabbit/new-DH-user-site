@@ -19,6 +19,9 @@ spl_autoload_register($autoloader->load(...));
 // Errors go to the log until Config says otherwise, below.
 \Security\ErrorOutput::hide();
 
+// Before any output, so every answer carries them, the error pages included.
+\Security\Headers::send();
+
 $mla_request = new \Mlaphp\Request();
 
 // Same PHP session prepend.php starts, so the CSRF token is shared with the
