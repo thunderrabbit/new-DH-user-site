@@ -49,7 +49,7 @@ class LoaderTest extends Unit
         $this->siteConfig('<?php $dbPass = "p";');
 
         $this->expectException(EConfigInvalid::class);
-        $this->expectExceptionMessage('must return an array');
+        $this->expectExceptionMessage('site_config.php must return an array');
         Loader::load($this->root);
     }
 
@@ -71,6 +71,34 @@ class LoaderTest extends Unit
         $this->expectException(EConfigInvalid::class);
         $this->expectExceptionMessage('No site_config.php in ' . $this->root);
         Loader::load($this->root);
+    }
+
+    public function testFallsBackToTheOldConfigFile(): void
+    {
+        // Declares \Config\Config, so it can run once per process: this is that once.
+        mkdir($this->root . '/classes/Config', 0700, true);
+        file_put_contents($this->root . '/' . Loader::LEGACY_FILE, '<?php
+            namespace Config;
+            class Config {
+                public string $domain_name = "old.example.com";
+                public string $cookie_name = "old_auth";
+                public string $app_path = "/home/user/sub.domain.com";
+                public string $dbHost = "h";
+                public string $dbName = "n";
+                public string $dbUser = "u";
+                public string $dbPass = "p";
+            }');
+
+        try {
+            $settings = Loader::load($this->root);
+        } finally {
+            unlink($this->root . '/' . Loader::LEGACY_FILE);
+            rmdir($this->root . '/classes/Config');
+            rmdir($this->root . '/classes');
+        }
+
+        $this->assertSame('old.example.com', $settings->domain_name);
+        $this->assertSame($this->root, $settings->app_path);
     }
 
     public function testLegacyConfigKeepsItsValuesAndLosesItsAppPath(): void

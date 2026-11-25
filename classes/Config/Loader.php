@@ -20,6 +20,8 @@ final class Loader
 {
     public const string FILE = 'site_config.php';
     public const string LEGACY_FILE = 'classes/Config/Config.php';
+    // A string, not ::class: no tracked file declares it, so PHPStan can't see it.
+    private const string LEGACY_CLASS = 'Config\Config';
 
     /**
      * @param string $root the project root, the directory holding prepend.php
@@ -33,7 +35,7 @@ final class Loader
         }
         $legacy_file = $root . '/' . self::LEGACY_FILE;
         if (is_file($legacy_file)) {
-            return self::fromLegacy(self::instantiate($legacy_file), $root);
+            return self::fromLegacy(self::instantiate($legacy_file, self::LEGACY_CLASS), $root);
         }
         throw new EConfigInvalid('No ' . self::FILE . ' in ' . $root);
     }
@@ -80,15 +82,19 @@ final class Loader
     }
 
     /** @throws EConfigInvalid when the file does not declare the class */
-    private static function instantiate(string $legacy_file): object
+    private static function instantiate(string $legacy_file, string $class): object
     {
-        $class = 'Config\Config';
+        // Autoload is off in both checks: the project's autoloader throws a bare
+        // Exception for a missing file, and the Unit suite's stays silent, so no
+        // test can tell the two apart.
+        // @infection-ignore-all
         if (!class_exists($class, false)) {
             self::requireFile($legacy_file);
         }
+        // @infection-ignore-all
         if (!class_exists($class, false)) {
             throw new EConfigInvalid(self::LEGACY_FILE . ' does not declare ' . $class);
         }
-        return new $class();
+        return new \ReflectionClass($class)->newInstance();
     }
 }
