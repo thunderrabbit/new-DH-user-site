@@ -158,7 +158,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($creating_admin_user) {
             $state = $config->allow_registration ? "open" : "closed";
             echo "<p>By the way, registration is <strong>{$state}</strong> to new users. "
-               . "Change <code>\$allow_registration</code> in <code>classes/Config/Config.php</code>.</p>";
+               . "Change <code>'allow_registration'</code> in <code>site_config.php</code>.</p>";
         }
     } catch (\PDOException $e) {
         if ($e->getCode() == '23000') { // Duplicate key error
