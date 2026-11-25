@@ -53,6 +53,19 @@ class LoaderTest extends Unit
         Loader::load($this->root);
     }
 
+    public function testATypoNamesTheLineButNotTheCode(): void
+    {
+        $this->siteConfig("<?php return [\n'dbPass' => 'hunter2' 'dbUser' => 'u',\n];");
+
+        try {
+            Loader::load($this->root);
+            $this->fail('A file that does not parse was accepted');
+        } catch (EConfigInvalid $e) {
+            $this->assertStringContainsString('does not parse, line 2', $e->getMessage());
+            $this->assertStringNotContainsString('hunter2', $e->getMessage());
+        }
+    }
+
     public function testSaysWhatIsMissingWhenThereIsNoFile(): void
     {
         $this->expectException(EConfigInvalid::class);

@@ -57,18 +57,35 @@ final class Loader
      */
     private static function read(string $file): array
     {
-        $values = require $file;
+        $values = self::requireFile($file);
         if (!is_array($values)) {
             throw new EConfigInvalid(self::FILE . ' must return an array');
         }
         return $values;
     }
 
+    /**
+     * A typo in the file is a ParseError, which quotes the code it choked on,
+     * and that may be the password. Only where it is goes into the message.
+     *
+     * @throws EConfigInvalid when the file does not parse
+     */
+    private static function requireFile(string $file): mixed
+    {
+        try {
+            return require $file;
+        } catch (\ParseError $e) {
+            throw new EConfigInvalid("$file does not parse, line " . $e->getLine());
+        }
+    }
+
     /** @throws EConfigInvalid when the file does not declare the class */
     private static function instantiate(string $legacy_file): object
     {
-        require_once $legacy_file;
         $class = 'Config\Config';
+        if (!class_exists($class, false)) {
+            self::requireFile($legacy_file);
+        }
         if (!class_exists($class, false)) {
             throw new EConfigInvalid(self::LEGACY_FILE . ' does not declare ' . $class);
         }
