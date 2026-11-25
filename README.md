@@ -166,9 +166,10 @@ chmod 600 site_config.php
 mv classes/Config/Config.php ~/Config.php.old
 ```
 
-Then load any page. If it answers 503, the error log names the key; put
-`classes/Config/Config.php` back from `~/Config.php.old` and the site runs as before while
-you fix `site_config.php`. Once a page loads, delete `~/Config.php.old`.
+Then load any page. If it answers 503, the error log names the key; move `site_config.php`
+out of the project root and restore `classes/Config/Config.php` from `~/Config.php.old`.
+The site uses the old config while you fix the new one. Once a page loads with the new
+config, delete `~/Config.php.old`.
 
 `php -r` runs the shell's PHP, which may be older than the site's; `var_export` and
 `get_object_vars` work on any of them. The new file carries every property the old one had,
