@@ -13,7 +13,21 @@ This is a minimalist PHP web application framework designed for DreamHost deploy
 - **Template System**: `classes/View/Template.php` - Custom templating engine with layout nesting via `grabTheGoods()` method
 - **Database Layer**: `classes/Database/` - PDO-based database abstraction with migration system
 - **Authentication**: `classes/Auth/` - Cookie-based login system with IP tracking
-- **Configuration**: Must create `classes/Config/Config.php` from `classes/Config/ConfigSample.php` with actual database credentials
+- **Configuration**: `site_config.php` in the project root (gitignored, one per server) returns an
+  array of only that site's values; copy `site_config.sample.php`. `Config\Loader::load($root)`
+  turns it into a `Config\Settings`, the one type every class and page takes as `$config`.
+  - **Settings carries every default**, so a key added there reaches every server with no file
+    edit. Never read a setting with `?? default`; add it to `Settings` (constructor, `KEYS`,
+    `fromArray()`) instead.
+  - It is `final readonly`: nothing later in a request can flip `display_errors` or
+    `allow_registration`. It refuses an unknown key (a typo must not leave sign-up open), an
+    empty credential or domain, a cookie name that isn't a token, and a wrong type. Messages
+    name the key, never the value; `__debugInfo()` hides `dbPass`.
+  - `app_path` is never configured: it is the root the loader was given.
+  - A server without `site_config.php` falls back to the old `classes/Config/Config.php`
+    class, unknown properties and its `app_path` dropped. README's *Converting an old
+    Config.php* is the one-time server step. Remove the fallback once every site has
+    converted.
 - **Bootstrap**: `prepend.php` - Application initialization, autoloader, and database checks
 - **One class per file.** `Mlaphp\Autoloader` maps `\Database\EDuplicateKey` to
   `classes/Database/EDuplicateKey.php`. A second class in a file is unreachable until
@@ -44,14 +58,14 @@ This is a minimalist PHP web application framework designed for DreamHost deploy
   `.dh-diag`. Never `rsync` the tree. The installed site is a real repo with its full
   history; `.git/` sits above the web root, so it is not web-readable.
 - The server pulls over ssh with a deploy key (`~/.ssh/id_ed25519` on the server, added to
-  the GitHub repo with write access). `bootstrap_token.txt` and `Config.php` are gitignored
+  the GitHub repo with write access). `bootstrap_token.txt` and `site_config.php` are gitignored
   and go up by `scp`. The `setup-this-new-site` skill drives all of this.
 - `DEST_PATH` is the **project root** on the server (the directory holding `wwwroot/`,
   `classes/`, `prepend.php`), not the web root.
 
 ### Initial Setup
 
-1. Copy `classes/Config/ConfigSample.php` to `classes/Config/Config.php` and fill it in. `$domain_name` must
+1. Copy `site_config.sample.php` to `site_config.php` and fill it in. `domain_name` must
    equal the browser's `HTTP_HOST` or `DBExistaroo::domainMatches()` aborts the request.
 2. The database must already exist; the app creates only its own tables (checked by `DBExistaroo`)
 3. First visit applies the `00` and `01` schemas, creating `applied_DB_versions`, `users`, `cookies`
@@ -68,7 +82,7 @@ This is a minimalist PHP web application framework designed for DreamHost deploy
 - **Open registration is intentional, and now switchable.** The token gates only the first account
   (the admin), which is created even when registration is closed. Everyone after is governed by
   `$config->allow_registration`: `true` is the shipped default; `false` makes `/login/register.php`
-  return 403 on GET and POST. Read it as `?? true` so a `Config.php` predating the property keeps its
+  return 403 on GET and POST. Its default stays `true` so a site that never set it keeps its
   old behaviour instead of locking a live site's users out.
 - IP address tracking via `Auth\IPBin` class
 - Login state managed by `Auth\IsLoggedIn`, in two halves that must stay apart:
@@ -187,7 +201,7 @@ This is a minimalist PHP web application framework designed for DreamHost deploy
   autoloader and no runtime dependencies. `vendor/` is gitignored — populate it with
   the containerized composer command below. Nothing in `vendor/` deploys.
 - Uses `\PrintRob\Debug::printRob()` for debugging output
-- Errors are logged, not displayed, unless `Config.php` sets `$display_errors = true`
+- Errors are logged, not displayed, unless `site_config.php` sets `'display_errors' => true`
 - Templates use `.tpl.php` extension and PHP template syntax
 
 ### Including prepend.php
@@ -206,7 +220,7 @@ include_once $matches[1] . '/prepend.php';
 /**
  * Set up by prepend.php.
  *
- * @var \Config\Config $config
+ * @var \Config\Settings $config
  * @var \Auth\IsLoggedIn $is_logged_in
  */
 ```
@@ -254,7 +268,7 @@ the current file. The URL only has to change.
 
 ### Local Development
 - No build step - pure PHP development (tests and style gates below)
-- PHP errors go to the error log; set `$display_errors = true` in your own `Config.php` to see them
+- PHP errors go to the error log; set `'display_errors' => true` in your own `site_config.php` to see them
   on screen
 - Use `\PrintRob\Debug::printRob($variable)` for debugging (similar to `var_dump` but formatted)
 
@@ -333,9 +347,8 @@ Setup and fixing:
   than baselining it or lowering the level. Entry scripts name the globals they
   take from `prepend.php` in a `@var` block under the include. A finding PHPStan
   can't see past gets `// @phpstan-ignore <identifier> (reason)` on that one line,
-  never a blanket ignore: the `catch` around `new \Config\Config()` is live
-  because the autoloader throws, and `$config->allow_registration ?? true` is
-  there for a Config.php older than the property. The one ignore in
+  never a blanket ignore. The code has none today: the test that proves
+  `Config\Settings` is read-only carries the only one. The one ignore in
   `phpstan.neon` is scoped to `wwwroot/` and the `$matches[1]` of the include
   idiom below.
 - Every PHP file in scope starts with `declare(strict_types=1);`. Templates are

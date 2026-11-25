@@ -11,7 +11,8 @@ and a clean layout system with cookie-based authentication.
 
 - `prepend.php`: Bootstrap. Every page includes it. Registers the autoloader, builds `$config`, connects to the DB, and checks login state.
 - `classes/`: PHP classes, autoloaded by namespace (`\Database\Base` → `classes/Database/Base.php`). **One class per file** — the autoloader cannot find a class whose filename does not match it.
-- `classes/Config/Config.php`: Your site's settings. **Not in the repo.** See *First install*.
+- `site_config.php`: Your site's settings, in the project root. **Not in the repo.** See *First install*.
+- `classes/Config/Settings.php`: Every setting, its default, and the checks it must pass.
 - `classes/Template.php`: Rendering engine with string-capture (`grabTheGoods()`) and layout nesting.
 - `templates/`: Your site's UI. Layout wrappers plus content templates (`.tpl.php`).
 - `wwwroot/`: Public web root. Put your pages here (`/admin/index.php`, etc).
@@ -39,7 +40,7 @@ and a clean layout system with cookie-based authentication.
 
 2. **Point the domain's Web Directory at `wwwroot`** in the DreamHost panel:
    e.g. `/home/dh_user/example.com/wwwroot`.
-   Everything above `wwwroot/` — including `classes/Config/Config.php` and the bootstrap
+   Everything above `wwwroot/` — including `site_config.php` and the bootstrap
    token — must stay unreachable from the web.
 
 3. **Create the database** in the DreamHost panel, with a user granted on it.
@@ -92,21 +93,27 @@ and a clean layout system with cookie-based authentication.
 
    where `example` is an ssh `Host` you have defined in `~/.ssh/config`.
 
-5. **Create `classes/Config/Config.php`** from `classes/Config/ConfigSample.php` and fill it in.
-   Nothing runs without this file — `prepend.php` constructs `\Config` on line one of real work.
+5. **Create `site_config.php`** from `site_config.sample.php` and fill it in. It returns an
+   array holding only this site's values; every key left out takes its default from
+   `Config\Settings`. `Config\Loader` checks it on every request: a required key that is
+   missing or empty, a misspelled key, or a value of the wrong type answers 503 and names
+   the key (never its value) in the error log.
 
-   | Property | Notes |
+   | Key | Notes |
    |---|---|
-   | `$site_title` | Shown in `<title>` and the front-page heading |
-   | `$allow_registration` | May strangers sign up? Ships `true`. See *Who may register* |
-   | `$display_errors` | Print PHP errors in the page? Ships `false`; they are always logged |
-   | `$domain_name` | **Must equal the browser's `HTTP_HOST`**, or `DBExistaroo` refuses to run |
-   | `$cookie_name` | Any name; distinguish it per site. The browser sees `__Host-<name>` |
-   | `$app_path` | Project root on the server, e.g. `/home/dh_user/example.com` |
-   | `$dbHost` `$dbUser` `$dbPass` `$dbName` | Read directly by `Database\Base::getPDO()` |
+   | `dbHost` `dbUser` `dbPass` `dbName` | Required |
+   | `domain_name` | Required. **Must equal the browser's `HTTP_HOST`**, or `DBExistaroo` refuses to run |
+   | `cookie_name` | Required. Letters, digits, `.` `_` `-`; distinguish it per site. The browser sees `__Host-<name>` |
+   | `site_title` | Shown in `<title>` and the front-page heading. Default `'Site'` |
+   | `allow_registration` | May strangers sign up? Default `true`. See *Who may register* |
+   | `display_errors` | Print PHP errors in the page? Default `false`; they are always logged |
+   | `cookie_lifetime` | Seconds a login lasts, 60 up to 400 days. Default 30 days |
+
+   There is no `app_path`: it is always the directory `prepend.php` is in, so a file copied
+   from a sibling site cannot point this one at the sibling's schemas or bootstrap token.
 
    It holds a plaintext DB password, so it is gitignored: write it locally, `scp` it to
-   `example:example.com/classes/Config/`, and `chmod 600` it there.
+   `example:example.com/`, and `chmod 600` it there.
 
 6. **Visit `/`.** With no `applied_DB_versions` table, `DBExistaroo` applies the `00` and
    `01` schemas, creating `applied_DB_versions`, `users`, `cookies` (with server-side expiry), and
@@ -131,7 +138,7 @@ and a clean layout system with cookie-based authentication.
 The token gates the **first** account only, and that account is the admin. It is created even when
 registration is closed — otherwise a closed site could never be set up.
 
-Everyone after that is governed by `$allow_registration` in `classes/Config/Config.php`:
+Everyone after that is governed by `'allow_registration'` in `site_config.php`:
 
 | Value | `/login/register.php` |
 |---|---|
@@ -139,10 +146,33 @@ Everyone after that is governed by `$allow_registration` in `classes/Config/Conf
 | `false` | 403, on both GET and POST |
 
 The moment you create the first admin, the page tells you which way it is set, and the admin
-dashboard repeats it on every visit. Change the value and `scp` `Config.php` up again — no other step.
+dashboard repeats it on every visit. Change the value and `scp` `site_config.php` up again — no other step.
 
-A `Config.php` written before this property existed also behaves as `true`, so upgrading an existing
-site never silently locks its users out.
+Leaving the key out also means `true`, so upgrading an existing site never silently locks its users out.
+
+### Converting an old `classes/Config/Config.php`
+
+A site set up before `site_config.php` has the class file instead. It keeps working:
+`Config\Loader` reads it when there is no `site_config.php`, ignores its `app_path`, and holds it
+to the same checks. Convert it when convenient, on the server, after pulling this code:
+
+```sh
+cd ~/example.com
+php -r 'require "classes/Config/Config.php";
+  $v = get_object_vars(new Config\Config());
+  unset($v["app_path"]);
+  echo "<?php\n\nreturn ", var_export($v, true), ";\n";' > site_config.php
+chmod 600 site_config.php
+mv classes/Config/Config.php ~/Config.php.old
+```
+
+Then load any page. If it answers 503, the error log names the key; put
+`classes/Config/Config.php` back from `~/Config.php.old` and the site runs as before while
+you fix `site_config.php`. Once a page loads, delete `~/Config.php.old`.
+
+`php -r` runs the shell's PHP, which may be older than the site's; `var_export` and
+`get_object_vars` work on any of them. The new file carries every property the old one had,
+defaults included; trim it to what this site sets if you like.
 
 ---
 
@@ -200,7 +230,7 @@ include_once $matches[1] . '/prepend.php';
 /**
  * Set up by prepend.php.
  *
- * @var \Config\Config $config
+ * @var \Config\Settings $config
  * @var \Auth\IsLoggedIn $is_logged_in
  */
 ```
