@@ -31,8 +31,7 @@ class AdminNotificationsPageTest extends Unit
         array $upcoming = [],
         array $form = self::EMPTY_FORM,
     ): string {
-        $config = new \Config\Config();
-        $config->app_path = dirname(__DIR__, 2);  // project root: real templates/
+        $config = \Tests\Unit\TestSettings::at(dirname(__DIR__, 2));
         // $_SESSION is just an array until session_start(), so this stays session-free.
         $_SESSION = ['csrf_token' => 'page-token'];
         $page = new \View\Template(

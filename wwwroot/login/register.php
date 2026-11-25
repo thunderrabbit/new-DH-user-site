@@ -30,19 +30,16 @@ $mla_request = new \Mlaphp\Request();
 $csrfProtect = new \Security\CSRFProtectaroo($mla_request);
 
 try {
-    $config = new \Config\Config();
-    // @phpstan-ignore catch.neverThrown (the autoloader throws when Config.php is missing)
-} catch (\Exception $e) {
-    // The message names the missing file's path, so it is logged, not shown.
-    error_log("Couldn't create Config: " . $e->getMessage());
+    $config = \Config\Loader::load($matches[1]);
+} catch (\Config\EConfigInvalid $e) {
+    // Names the file or key, never a value, and the path is ours: log, don't show.
+    error_log("Couldn't load config: " . $e->getMessage());
     http_response_code(503);
     echo "<h1>Site unavailable</h1><p>This site is not configured yet.</p>";
     exit;
 }
 
-// @phpstan-ignore nullCoalesce.property (an older Config.php may not declare it)
-$show_errors = $config->display_errors ?? false;
-if ($show_errors) {
+if ($config->display_errors) {
     \Security\ErrorOutput::show();
 }
 
@@ -68,14 +65,12 @@ $creating_admin_user = !$dbExistaroo->firstUserExistBool();
 // value is never consulted again, so a later rsync that restores the file is inert.
 //
 // The token gates the FIRST account only. Whether strangers may sign up afterwards
-// is $config->allow_registration. A Config.php written before that property existed
-// keeps this page open, which is how every site here behaved until now.
+// is $config->allow_registration. A site that never sets it keeps this page open,
+// which is how every site here behaved until now.
 $bootstrap_token_path = $config->app_path . '/bootstrap_token.txt';
 $bootstrap_token_missing = $creating_admin_user && !file_exists($bootstrap_token_path);
 
-// @phpstan-ignore nullCoalesce.property (an older Config.php may not declare it)
-$allow_registration = $config->allow_registration ?? true;
-$registration_closed = !$creating_admin_user && !$allow_registration;
+$registration_closed = !$creating_admin_user && !$config->allow_registration;
 
 if ($registration_closed) {
     http_response_code(403);
@@ -161,7 +156,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Only the admin, standing here once, ever sees this. Say it now: from the
         // next request onward this page's behaviour depends on a value they set.
         if ($creating_admin_user) {
-            $state = $allow_registration ? "open" : "closed";
+            $state = $config->allow_registration ? "open" : "closed";
             echo "<p>By the way, registration is <strong>{$state}</strong> to new users. "
                . "Change <code>\$allow_registration</code> in <code>classes/Config/Config.php</code>.</p>";
         }

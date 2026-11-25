@@ -24,8 +24,7 @@ class TemplateTest extends Unit
 
     private function template(int $admin_count = 0): \View\Template
     {
-        $config = new \Config\Config();
-        $config->app_path = dirname(__DIR__, 2);  // project root: real templates/
+        $config = \Tests\Unit\TestSettings::at(dirname(__DIR__, 2));
         return new \View\Template(
             $config,
             new \Security\CSRFProtectaroo(new \Mlaphp\Request()),
@@ -41,8 +40,7 @@ class TemplateTest extends Unit
         $_SESSION = [];
         try {
             $csrf = new \Security\CSRFProtectaroo(new \Mlaphp\Request());
-            $config = new \Config\Config();
-            $config->app_path = $root;
+            $config = \Tests\Unit\TestSettings::at($root);
             $page = new \View\Template($config, csrf: $csrf, admin_count: 0);
             $page->setTemplate("form.tpl.php");
             $page->set('csrf', 'a page variable cannot replace it');
