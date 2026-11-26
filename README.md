@@ -105,7 +105,7 @@ and a clean layout system with cookie-based authentication.
    | `domain_name` | Required. **Must equal the browser's `HTTP_HOST`**, or `DBExistaroo` refuses to run |
    | `cookie_name` | Required. Letters, digits, `.` `_` `-`; distinguish it per site. The browser sees `__Host-<name>` |
    | `site_title` | Shown in `<title>` and the front-page heading. Default `'Site'` |
-   | `allow_registration` | May strangers sign up? Default `true`. See *Who may register* |
+   | `allow_registration` | May strangers sign up? Default `false`. See *Who may register* |
    | `display_errors` | Print PHP errors in the page? Default `false`; they are always logged |
    | `cookie_lifetime` | Seconds a login lasts, 60 up to 400 days. Default 30 days |
 
@@ -142,8 +142,8 @@ Everyone after that is governed by `'allow_registration'` in `site_config.php`:
 
 | Value | `/login/register.php` |
 |---|---|
-| `true` | Anyone may create a `role='user'` account, with no token and no login. Ships this way |
-| `false` | 403, on both GET and POST |
+| `true` | Anyone may create a `role='user'` account, with no token and no login |
+| `false` | 403, on both GET and POST. Ships this way |
 
 The moment you create the first admin, the page tells you which way it is set, and the admin
 dashboard repeats it on every visit. Change the value and `scp` `site_config.php` up again — no other step.
