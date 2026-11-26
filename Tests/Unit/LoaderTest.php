@@ -126,7 +126,8 @@ class LoaderTest extends Unit
 
     public function testLegacyConfigWithoutNewerPropertiesGetsTheirDefaults(): void
     {
-        // Older than display_errors and allow_registration, as live sites are.
+        // Older than display_errors and allow_registration. Every live site
+        // sets allow_registration today; one that didn't would be closed.
         $legacy = new class {
             public string $domain_name = 'example.com';
             public string $cookie_name = 'auth';
@@ -138,7 +139,7 @@ class LoaderTest extends Unit
 
         $settings = Loader::fromLegacy($legacy, '/r');
 
-        $this->assertTrue($settings->allow_registration);
+        $this->assertFalse($settings->allow_registration);
         $this->assertFalse($settings->display_errors);
     }
 
