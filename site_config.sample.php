@@ -21,7 +21,7 @@ return [
 
     // Optional, shown with their defaults.
     // 'site_title' => 'Site',
-    // 'allow_registration' => true,  // may strangers sign up? The first admin always can.
+    // 'allow_registration' => false,  // may strangers sign up? The first admin always can.
     // 'display_errors' => false,  // never true on a site strangers can reach
     // 'cookie_lifetime' => 60 * 60 * 24 * 30,  // seconds, 60 up to 400 days
 ];
