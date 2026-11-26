@@ -129,22 +129,36 @@ final readonly class Settings
     /** @param array<mixed> $values */
     private static function string(array $values, string $key, ?string $default = null): string
     {
-        $value = $values[$key] ?? $default ?? throw new EConfigInvalid("Config '$key' is missing");
+        if (!array_key_exists($key, $values)) {
+            return $default ?? throw new EConfigInvalid("Config '$key' is missing");
+        }
+        $value = $values[$key];
         return is_string($value) ? $value : throw self::wrongType($key, 'a string', $value);
     }
 
     /** @param array<mixed> $values */
     private static function bool(array $values, string $key, bool $default): bool
     {
-        $value = $values[$key] ?? $default;
+        $value = self::given($values, $key, $default);
         return is_bool($value) ? $value : throw self::wrongType($key, 'true or false', $value);
     }
 
     /** @param array<mixed> $values */
     private static function int(array $values, string $key, int $default): int
     {
-        $value = $values[$key] ?? $default;
+        $value = self::given($values, $key, $default);
         return is_int($value) ? $value : throw self::wrongType($key, 'a whole number', $value);
+    }
+
+    /**
+     * The value as written, null included; the default only when the key is
+     * absent. `??` would read `'allow_registration' => null` as absent.
+     *
+     * @param array<mixed> $values
+     */
+    private static function given(array $values, string $key, mixed $default): mixed
+    {
+        return array_key_exists($key, $values) ? $values[$key] : $default;
     }
 
     private static function wrongType(string $key, string $wanted, mixed $value): EConfigInvalid

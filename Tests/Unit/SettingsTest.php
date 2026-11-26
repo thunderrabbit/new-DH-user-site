@@ -98,6 +98,21 @@ class SettingsTest extends Unit
         Settings::fromArray(['allow_registration' => 'false'] + $this->minimal(), '/r');
     }
 
+    public function testRefusesAnExplicitNullInsteadOfDefaultingIt(): void
+    {
+        // `??` reads a present null as absent, which handed back the default.
+        $this->expectException(EConfigInvalid::class);
+        $this->expectExceptionMessage("'allow_registration' must be true or false, not null");
+        Settings::fromArray(['allow_registration' => null] + $this->minimal(), '/r');
+    }
+
+    public function testRefusesAnExplicitNullForAnOptionalString(): void
+    {
+        $this->expectException(EConfigInvalid::class);
+        $this->expectExceptionMessage("'site_title' must be a string, not null");
+        Settings::fromArray(['site_title' => null] + $this->minimal(), '/r');
+    }
+
     public function testWrongTypeMessageLeavesTheValueOut(): void
     {
         try {
