@@ -79,11 +79,12 @@ This is a minimalist PHP web application framework designed for DreamHost deploy
 
 - Session-based with database-stored cookies; the DB stores a sha256 hash, not the cookie value
 - With no users, every URL redirects to `/login/register.php` (see the bootstrap token above)
-- **Open registration is intentional, and now switchable.** The token gates only the first account
+- **Registration is closed unless a site opens it.** The token gates only the first account
   (the admin), which is created even when registration is closed. Everyone after is governed by
-  `$config->allow_registration`: `true` is the shipped default; `false` makes `/login/register.php`
-  return 403 on GET and POST. Its default stays `true` so a site that never set it keeps its
-  old behaviour instead of locking a live site's users out.
+  `$config->allow_registration`: `false`, the shipped default, makes `/login/register.php`
+  return 403 on GET and POST; `true` lets strangers sign up. A site has to choose open sign-up,
+  so a missing or forgotten setting fails closed. Every live site set the value explicitly
+  before the default flipped.
 - IP address tracking via `Auth\IPBin` class
 - Login state managed by `Auth\IsLoggedIn`, in two halves that must stay apart:
   - `resumeFromCookie()` runs on every request from `prepend.php`. Its only writes are

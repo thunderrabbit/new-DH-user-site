@@ -65,8 +65,8 @@ $creating_admin_user = !$dbExistaroo->firstUserExistBool();
 // value is never consulted again, so a later rsync that restores the file is inert.
 //
 // The token gates the FIRST account only. Whether strangers may sign up afterwards
-// is $config->allow_registration. A site that never sets it keeps this page open,
-// which is how every site here behaved until now.
+// is $config->allow_registration. A site that never sets it is closed: strangers
+// get a 403 until the site opts in.
 $bootstrap_token_path = $config->app_path . '/bootstrap_token.txt';
 $bootstrap_token_missing = $creating_admin_user && !file_exists($bootstrap_token_path);
 

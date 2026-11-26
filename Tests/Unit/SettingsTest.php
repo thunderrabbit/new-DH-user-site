@@ -29,7 +29,7 @@ class SettingsTest extends Unit
 
         $this->assertSame('/home/u/example.com', $settings->app_path);
         $this->assertSame('Site', $settings->site_title);
-        $this->assertTrue($settings->allow_registration);
+        $this->assertFalse($settings->allow_registration);
         $this->assertFalse($settings->display_errors);
         $this->assertSame(60 * 60 * 24 * 30, $settings->cookie_lifetime);
     }

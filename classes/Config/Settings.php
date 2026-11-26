@@ -58,8 +58,8 @@ final readonly class Settings
         public string $site_title = 'Site',
         // May strangers create their own role='user' account at
         // /login/register.php? The first (admin) account is always allowed,
-        // gated by bootstrap_token.txt.
-        public bool $allow_registration = true,
+        // gated by bootstrap_token.txt. Closed unless a site opens it.
+        public bool $allow_registration = false,
         // Print PHP errors and uncaught exceptions in the page? They are
         // always logged. Leave false on any site a stranger can reach.
         public bool $display_errors = false,
