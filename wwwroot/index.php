@@ -10,15 +10,14 @@ include_once $matches[1] . '/prepend.php';
 /**
  * Set up by prepend.php.
  *
- * @var \Config\Config $config
+ * @var \Config\Settings $config
  * @var \Security\CSRFProtectaroo $csrfProtect
  * @var int $admin_count
  * @var \Auth\IsLoggedIn $is_logged_in
  */
 
 # A Config.php written before $site_title existed should still render a page.
-// @phpstan-ignore nullCoalesce.property (an older Config.php may not declare it)
-$site_title = $config->site_title ?? 'Site';
+$site_title = $config->site_title;
 
 if ($is_logged_in->isLoggedIn()) {
     // Logged in - show main site homepage

@@ -20,7 +20,7 @@ include_once $matches[1] . '/prepend.php';
 /**
  * Set up by prepend.php.
  *
- * @var \Config\Config $config
+ * @var \Config\Settings $config
  * @var \PDO $mla_database
  * @var \Auth\IsLoggedIn $is_logged_in
  * @var \Security\CSRFProtectaroo $csrfProtect
@@ -78,8 +78,7 @@ $inner = $page->grabTheGoods();
 
 $layout = new \View\Template(config: $config, csrf: $csrfProtect, admin_count: $admin_count);
 $layout->setTemplate("layout/base.tpl.php");
-// @phpstan-ignore nullCoalesce.property (an older Config.php may not declare it)
-$layout->set("page_title", ($config->site_title ?? 'Site') . " Notifications");
+$layout->set("page_title", $config->site_title . " Notifications");
 $layout->set("username", $is_logged_in->getLoggedInUsername());
 $layout->set("is_admin", true);
 $layout->set("page_content", $inner);

@@ -21,7 +21,7 @@ return RectorConfig::configure()
         __DIR__ . '/vendor',
         __DIR__ . '/Tests/_output',
         __DIR__ . '/Tests/Support/_generated',
-        // Per-site and gitignored; ConfigSample declares the same class.
+        // The old per-site config, gitignored; Config\Loader still reads one.
         __DIR__ . '/classes/Config/Config.php',
     ])
     ->withSets([

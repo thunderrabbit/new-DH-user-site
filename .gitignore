@@ -2,6 +2,7 @@
 .aider*
 php*.sh
 !phpmyadmin-open.sh
+/site_config.php
 classes/Config/Config.php
 bootstrap_token.txt
 wwwroot/.dh-diag

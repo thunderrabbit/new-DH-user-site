@@ -21,7 +21,7 @@ class Template
      *        page that forgets it fails PHPStan instead of quietly losing the chip.
      */
     public function __construct(
-        \Config\Config $config,
+        \Config\Settings $config,
         private readonly \Security\CSRFProtectaroo $csrf,
         private readonly int $admin_count,
     ) {
