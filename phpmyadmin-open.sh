@@ -1,18 +1,33 @@
 #!/bin/bash
-# Open phpMyAdmin for this site's database, logged in.
+# Open this site's database in DBeaver, connected.
+# (It used to sign in to DreamHost's phpMyAdmin, which is retired; the file
+# keeps its name so nobody has to learn a new one.)
+#
+#   phpmyadmin-open.sh            open DBeaver, connected
+#   phpmyadmin-open.sh --mysql    open the mysql client instead
+#   phpmyadmin-open.sh --close    close the ssh tunnel
 #
 # Committed on purpose: this file holds no secret. The credentials are read
-# at run time from the server's classes/Config/Config.php over ssh, using the
-# same DEST and DEST_PATH that deploy_to_dh.sh beside it has filled in (so a
-# site needs no further setup for this to work). The template repo itself
-# keeps DEST="example" committed and refuses to run, like deploy_to_dh.sh.
+# at run time from the server's site_config.php over ssh (or, on a server not
+# yet converted, its old classes/Config/Config.php), using the same DEST and
+# DEST_PATH that deploy_to_dh.sh beside it has filled in, so a site needs no
+# further setup for this to work. The template repo itself keeps
+# DEST="example" committed and refuses to run, like deploy_to_dh.sh.
 #
-# The credentials pass through one temp HTML file holding an auto-submitting
-# form, made by mktemp (mode 600) and removed two seconds after the browser
-# has been handed it; the password never goes on the command line.
+# The password is never on a command line: DBeaver and mysql each read it
+# from a mode-600 file in $XDG_RUNTIME_DIR (memory, not disk) that is removed
+# again. The connection goes through an ssh tunnel to the DreamHost server:
+# the database only accepts hosts named in the panel's "Allowable Hosts", and
+# a laptop's public address changes, but the server is already allowed.
 set -e
+umask 077
 
 cd "$(dirname "$0")"
+
+MODE="${1:-}"
+RUNTIME="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+# How long DBeaver gets to start and read the password file.
+VARS_SECONDS=90
 
 # Read, don't source: deploy_to_dh.sh pushes and pulls when run.
 DEST=$(sed -n 's/^DEST="\([^"]*\)".*/\1/p' deploy_to_dh.sh | head -1)
@@ -24,101 +39,105 @@ if [ -z "$DEST" ] || [ "$DEST" = "example" ] || [ -z "$DEST_PATH" ]; then
 fi
 
 # DEST_PATH is the project root on the server, relative to the user's home.
-REMOTE_CONFIG="$DEST_PATH/classes/Config/Config.php"
+SITE=$(basename "$DEST_PATH")
 
-echo "Fetching credentials from $DEST..."
+# Each site gets its own local port, worked out from its name, so two sites
+# can be open at once and a tunnel is only ever reused for its own site.
+LOCAL_PORT=$((13306 + $(printf '%s' "$DEST/$DEST_PATH" | cksum | cut -d' ' -f1) % 1000))
+TUNNEL="127.0.0.1:$LOCAL_PORT"
 
-# Read Config.php once. The ssh Host already carries the username and key.
-CONFIG=$(ssh "$DEST" "cat $REMOTE_CONFIG")
+if [ "$MODE" = "--close" ]; then
+    pkill -f -- "-L $TUNNEL:" && echo "Tunnel closed." || echo "No tunnel was open."
+    exit 0
+fi
 
-# Config.php may quote values with ' or ", so accept either.
-field () {
-    printf '%s\n' "$CONFIG" | sed -n "s/.*\\\$$1 *= *['\"]\([^'\"]*\)['\"].*/\1/p" | head -1
-}
-
-DB_USER=$(field dbUser)
-DB_PASS=$(field dbPass)
-SERVER_NAME=$(field dbHost)
-
-if [ -z "$DB_USER" ] || [ -z "$DB_PASS" ] || [ -z "$SERVER_NAME" ]; then
-    echo "Error: could not read dbUser, dbPass and dbHost from $DEST:$REMOTE_CONFIG" >&2
+if [ -n "$MODE" ] && [ "$MODE" != "--mysql" ]; then
+    echo "Usage: $0 [--mysql | --close]" >&2
     exit 1
 fi
 
-# DreamHost's phpMyAdmin signon; pma_servername is the site's own MySQL host.
-PHPMYADMIN_URL="https://west1-phpmyadmin.dreamhost.com/signon.php?lang=en"
+if [ -z "$MODE" ]; then
+    DBEAVER=$(command -v dbeaver-ce || command -v dbeaver || true)
+    if [ -z "$DBEAVER" ]; then
+        echo "DBeaver is not installed (no dbeaver-ce or dbeaver on PATH)." >&2
+        exit 1
+    fi
+fi
 
-TEMP_HTML=$(mktemp /tmp/phpmyadmin-login-XXXXXX.html)
+echo "Fetching credentials from $DEST..." >&2
 
-cat > "$TEMP_HTML" << EOF
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Logging into phpMyAdmin...</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-        }
-        .container {
-            text-align: center;
-            padding: 2rem;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
-            backdrop-filter: blur(10px);
-        }
-        .spinner {
-            border: 4px solid rgba(255, 255, 255, 0.3);
-            border-top: 4px solid white;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 20px auto;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>Logging into phpMyAdmin...</h1>
-        <div class="spinner"></div>
-        <p>Please wait while we redirect you...</p>
-    </div>
+# PHP on the server reads the config, so quoting and escapes in it are PHP's
+# to understand, not sed's. site_config.php returns an array; the old file is
+# a class with a property per value. Each value comes back base64 on its own
+# line, then the name of the file it came from. The ssh Host already carries
+# the username and key.
+mapfile -t ANSWER < <(ssh "$DEST" "php -- '$DEST_PATH'" << 'PHP'
+<?php
+$root = $argv[1];
+if (is_file("$root/site_config.php")) {
+    $from = 'site_config.php';
+    $config = require "$root/$from";
+} elseif (is_file("$root/classes/Config/Config.php")) {
+    $from = 'classes/Config/Config.php';
+    require "$root/$from";
+    $config = get_object_vars(new \Config\Config());
+} else {
+    // Not STDERR: PHP does not define it for a script read from stdin.
+    file_put_contents('php://stderr', "No site_config.php and no classes/Config/Config.php in $root\n");
+    exit(1);
+}
+foreach (['dbHost', 'dbUser', 'dbPass', 'dbName'] as $key) {
+    echo base64_encode((string) ($config[$key] ?? '')), "\n";
+}
+echo $from, "\n";
+PHP
+)
 
-    <form id="loginForm" method="POST" action="$PHPMYADMIN_URL">
-        <input type="hidden" name="pma_username" value="$DB_USER">
-        <input type="hidden" name="pma_password" value="$DB_PASS">
-        <input type="hidden" name="pma_servername" value="$SERVER_NAME">
-        <input type="hidden" name="server" value="1">
-        <input type="hidden" name="lang" value="en">
-    </form>
+DB_HOST=$(printf '%s' "${ANSWER[0]}" | base64 -d)
+DB_USER=$(printf '%s' "${ANSWER[1]}" | base64 -d)
+DB_PASS=$(printf '%s' "${ANSWER[2]}" | base64 -d)
+DB_NAME=$(printf '%s' "${ANSWER[3]}" | base64 -d)
+FROM="${ANSWER[4]}"
+unset ANSWER
 
-    <script>
-        window.onload = function() {
-            document.getElementById('loginForm').submit();
-        };
-    </script>
-</body>
-</html>
-EOF
+if [ -z "$DB_HOST" ] || [ -z "$DB_USER" ] || [ -z "$DB_PASS" ] || [ -z "$DB_NAME" ]; then
+    echo "Error: could not read dbHost, dbUser, dbPass and dbName from $DEST:$DEST_PATH/${FROM:-site_config.php}" >&2
+    exit 1
+fi
 
-echo "Opening phpMyAdmin in your browser..."
-xdg-open "$TEMP_HTML"
+# The tunnel: this machine's port leads to the database, as seen from the
+# DreamHost server. One left open by an earlier run is used again.
+if pgrep -f -- "-L $TUNNEL:$DB_HOST:3306" > /dev/null; then
+    echo "Using the tunnel already open on $TUNNEL." >&2
+else
+    ssh -f -N -o ExitOnForwardFailure=yes -L "$TUNNEL:$DB_HOST:3306" "$DEST"
+    echo "Tunnel open on $TUNNEL (close it with: $0 --close)." >&2
+fi
 
-# Give the browser time to read the file, then remove it.
-sleep 2
-rm -f "$TEMP_HTML"
+# Both file formats take a backslash as an escape, so double any in the password.
+ESCAPED_PASS=${DB_PASS//\\/\\\\}
 
-echo "Done. phpMyAdmin should be opening for $SERVER_NAME."
+if [ "$MODE" = "--mysql" ]; then
+    SECRETS=$(mktemp "$RUNTIME/db-open-XXXXXX.cnf")
+    trap 'rm -f "$SECRETS"' EXIT
+    printf '[client]\nuser="%s"\npassword="%s"\n' "$DB_USER" "${ESCAPED_PASS//\"/\\\"}" > "$SECRETS"
+    mysql --defaults-extra-file="$SECRETS" -A -h 127.0.0.1 -P "$LOCAL_PORT" "$DB_NAME"
+    exit 0
+fi
+
+# DBeaver replaces ${db_open_password} in -con with the value in the file
+# that -vars names, so `ps` shows the file's path and not the password.
+SECRETS=$(mktemp "$RUNTIME/db-open-XXXXXX.properties")
+printf 'db_open_password=%s\n' "$ESCAPED_PASS" > "$SECRETS"
+
+# save=false: a temporary connection, which DBeaver forgets when it closes.
+CONNECTION="driver=mysql|host=127.0.0.1|port=$LOCAL_PORT|database=$DB_NAME|user=$DB_USER"
+CONNECTION="$CONNECTION|password=\${db_open_password}|name=$SITE|save=false|connect=true"
+
+setsid "$DBEAVER" -vars "$SECRETS" -con "$CONNECTION" > /dev/null 2>&1 &
+
+# Remove the password file once DBeaver has had time to read it.
+( sleep "$VARS_SECONDS"; rm -f "$SECRETS" ) > /dev/null 2>&1 &
+disown -a
+
+echo "DBeaver is opening $DB_NAME (credentials from $FROM). The password file is removed in $VARS_SECONDS seconds."
